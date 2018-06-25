@@ -26,7 +26,7 @@ let el = {
 
 virtual domd当数据状态变更 > 新的渲染树和旧的渲染树比较，记录出两者的差异.
 
-先简单写一个遍历元素的函数:
+简单学习下写一个遍历元素的函数:
 
 ```js {.line-numbers}
 function nodeInit( el ) {
@@ -41,7 +41,8 @@ function nodeInit( el ) {
         elNode,     // 元素节点
         props: [],      // 元素属性值
         children: []，        // 元素子元素
-        html: elNode.innerHTML      // 内容
+        html: elNode.innerHTML,      // 内容
+        tagNmae: elNode.tagName.toLowerCase()   // 标签名 
     }
     for(let i in vm.elNode){ // 遍历属性值
         vm.props.push( {[i]: vm.elNode[i]} )
@@ -69,29 +70,97 @@ function nodeInit( el ) {
 var ren = new nodeInit('.wrap')
 console.log( ren )
 
-// 会返回如下:
+// 输出如下:
 // ren = {
 //     elNode: div.wrap,
-//     children: [
-//         {
+//     props: [...],
+//     innerText: '',
+//     tagName: 'div',
+//     children: [{
 //             elNode: ul,
 //             props: [...],
-//              html: [...],
+//             tagName: 'ul',
+//             innerText: '',
 //             children: [
-//                 elNode: li,
-//                 props: [...],
-//                  html: [...],
-//                 children: []
+//                 {
+//                     elNode: li,
+//                     props: [...],
+//                     innerText: '',
+//                     tagName: 'li',
+//                     children: [...]
+//                 }
 //             ]
 //         },
 //         {
 //             elNode: div.con,
 //             props: [...],
-//              html: [...],
-//             children: []
+//             tagName: 'li',
+//             innerText: '',
+//             children: [...]
 //         }
 //     ],
-//     props: [...],
-//      html: [...]
+
 // }
+```
+
+
+在写一个jsHTML结构对象,实现渲染真实的dom元素
+```js 
+var nodeObj = {
+    elNode: 'div.wrap',
+    props: [{id: 'wrap'},{class: 'totinsa'}],
+    tagName: 'div',
+    innerText: '123',
+    children: [{
+            elNode: 'ul',
+            props: [],
+            innerText: '',
+            tagName: 'ul',
+            children: [
+                {
+                    elNode: 'li',
+                    props: [],
+                    html: [],
+                    tagName: 'li',
+                    innerText: '123',
+                    children: []
+                }
+            ]
+        },
+        {
+            elNode: 'div.con',
+            props: [{class: 'con'}],
+            tagName: 'div',
+            innerText: '123',
+            children: []
+        }
+    ]
+}
+```
+
+```js
+function renderNode(obj){
+    const elNode = document.createElement( obj.tagName )
+
+    // 文本内容
+    elNode.innerText = obj.innerText || ''
+
+    // 渲染props属性值
+    if( !!obj.props.length ){
+        obj.props =  Object.assign(...obj.props)
+        for(let i in obj.props){
+            elNode.setAttribute(i, obj.props[i])
+        }
+    }
+
+    // 深度遍历子节点元素
+    if(!!obj.children.length){
+        for(let i in obj.children){
+            elNode.appendChild( renderNode( obj.children[i] ) )
+        }
+    }
+    return elNode
+}
+let b = document.body
+b.insertBefore( renderNode(nodeObj), b.children[0] )
 ```

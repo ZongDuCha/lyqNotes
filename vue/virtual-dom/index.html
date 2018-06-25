@@ -9,65 +9,53 @@
 </head>
 
 <body>
-    <div class="wrap">
-        <!-- 123 -->
+    <div class="wrap" :id="123">
         <ul>
             <li>123</li>
         </ul>
         <div class="con">123</div>
     </div>
 </body>
+<!-- 将html结构换js对象 -->
+<script src="./nodeInit.js"></script>
+<!-- 在写一个jsHTML结构对象,实现渲染真实的dom元素 -->
+<script src="./renderNode.js"></script>
 <script>
-function nodeInit(el){
-    // 判断传入类型
-    let elNode = typeof el == 'string' ? document.querySelector(el) : el
-    // 判断传入有效元素值
-    if( !el || !(elNode instanceof HTMLCollection) && !(elNode instanceof Element) ){ 
-        throw (el+' This is not an effective value.')
-        return false;
-    }
-    const vm  = { // 记录元素的属性值
-        elNode,     // 元素节点
-        props: [],      // 元素属性值
-        children: [],      // 元素子元素
-        html: elNode.innerHTML      // 内容
-    }
-    for(let i in vm.elNode){ // 遍历属性值
-        vm.props.push( {[i]: vm.elNode[i]})
-    }
-    if(!!elNode.children){ // 如果有子节点
-        for(let i=0,len = elNode.children.length; i < len; i++){
-            // 深度遍历 
-            vm.children[i] = nodeInit(elNode.children[i])
-        }
-    }
-    return vm
-}
-
-var ren = new nodeInit('.wrap')
-console.log( ren )
-// Element.prototype.render = function () {
-//     var el = document.createElement(this.tagName) // 根据tagName构建
-//     var props = this.props
-
-//     for (var propName in props) { // 设置节点的DOM属性
-//         var propValue = props[propName]
-//         el.setAttribute(propName, propValue)
-//     }
-
-//     var children = this.children || []
-
-
-//     if (!!children.length) {
-//         children.forEach(function (child) {
-//             var childEl = (child instanceof Element)
-//                 ? child.render() // 如果子节点也是虚拟DOM，递归构建DOM节点
-//                 : document.createTextNode(child) // 如果字符串，只构建文本节点
-//             el.appendChild(childEl)
-//         })
-//     }
-//     return el
+var nodeInit = new nodeInit('.wrap');
+console.log(nodeInit)
+// jsHTML结构对象
+// var nodeObj = {
+//     elNode: 'div.wrap',
+//     props: [{id: 'wrap'},{class: 'totinsa'}],
+//     tagName: 'div',
+//     innerText: '123',
+//     children: [{
+//             elNode: 'ul',
+//             props: [],
+//             innerText: '',
+//             tagName: 'ul',
+//             children: [
+//                 {
+//                     elNode: 'li',
+//                     props: [],
+//                     html: [],
+//                     tagName: 'li',
+//                     innerText: '123',
+//                     children: []
+//                 }
+//             ]
+//         },
+//         {
+//             elNode: 'div.con',
+//             props: [{class: 'con'}],
+//             tagName: 'div',
+//             innerText: '123',
+//             children: []
+//         }
+//     ]
 // }
-</script>
+// let b = document.body
+// b.insertBefore( renderNode(nodeObj), b.children[0] )
 
+</script>
 </html>
