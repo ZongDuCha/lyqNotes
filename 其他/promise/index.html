@@ -10,6 +10,22 @@
     
 </body>
 <script>
+function thenPromise(PromiseRelase, x, resolve, reject){
+    if(PromiseRelase === x){
+        return reject(TypeError('Chaining cycle detected for promise'));
+    }
+    let repeat;
+    if(x !== null && (typeof x === 'object' || typeof x === 'function')){
+        try {
+            let then = x.then;
+            if(typeof then === 'function'){
+                
+            }
+        } catch (error) {
+            
+        }
+    }
+}
 class Promise{
     constructor(fn){
         this.state = 'pending'; //  成功的状态值
@@ -42,24 +58,38 @@ class Promise{
     
 
     then(onFulfilled, onRejected){
-        if(this.state == 'fulfilled'){
-            onFulfilled(this.value)
-        }
-        if(this.state == 'reject'){
-            onRejected(this.err)
-        }
+        let PromiseRelase = new Promise( (resolve, reject) => {
+            if(this.state == 'fulfilled'){
+                var x = onFulfilled(this.value)
+                thenPromise(PromiseRelase, x, resolve, reject)
+            }
+            if(this.state == 'reject'){
+                var x = onRejected(this.err)
+                thenPromise(PromiseRelase, x, resolve, reject)
+            }
 
-        
-        if(this.state == 'pending'){
-            this.onFulfilledCallbacks.push(()=>{
-                onFulfilled(this.value)
-            })
-            this.onRejectedCallbacks.push(()=>{
-                onRejected(this.err)
-            })
-        }
+            
+            if(this.state == 'pending'){
+                this.onFulfilledCallbacks.push(()=>{
+                    var x = onFulfilled(this.value)
+                    thenPromise(PromiseRelase, x, resolve, reject)
+                })
+                this.onRejectedCallbacks.push(()=>{
+                    var x = onRejected(this.err)
+                    thenPromise(PromiseRelase, x, resolve, reject)
+                })
+            }
+        })
     }
 }
+
+var pro = new Promise(rev  => {
+    rev(123)
+}).then(res => {
+    return new Promise(res => {
+        res(333)
+    })
+})
 
 // v8官网实现promise：https://chromium.googlesource.com/v8/v8/+/3.29.45/src/promise.js?autodive=0/
 </script>
