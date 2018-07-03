@@ -1,5 +1,7 @@
 # virtual dom
 
+* 一个元素的属性将近有200多个，但是具体用到的却只有几个，当我们频繁的去操作dom，就会造成性能不好的问题。
+
 * 采用virtual dom的思路,不仅提升了dom操作的效率，主要思想就是模拟dom的树状结构，在内存中创建保存要映射的dom节点信息的数据
 
 * 在交互，数据变更等因素导致需要试图更新的时候，先通过对节点数据进行diff比较后记录差异结果，在一次性对dom进行批量更新操作，所有复杂的操作
@@ -8,18 +10,20 @@
 
 * 在js里操作数据更加高效，快捷，提高了性能，优化了dom操作
 
+* 当组件状态发生更新时，然后触发Virtual Dom数据的变化，然后通过Virtual Dom和真实DOM的比对，再对真实DOM更新。可以简单认为Virtual Dom是真实DOM的缓存。
 
-`在掘金的图：`
+基于 Virtual DOM 的数据更新与UI同步机制:
 ![](https://user-gold-cdn.xitu.io/2018/5/24/163904e89b21b515?imageView2/0/w/1280/h/960/format/webp/ignore-error/1)
 
+初始渲染时，首先将渲染为Virtual dom,然后在转化为dom
 ![](https://user-gold-cdn.xitu.io/2017/5/16/39eac671c7fae8f73917ba1e6d06daa8?imageView2/0/w/1280/h/960/format/webp/ignore-error/1)
 
+数据更新时，渲染得到新的virtual dom,与上次的virtual dom进行diff比较
 
 
 
 ## vdom的数据定义
 
-一个元素的属性将近有200多个，但是具体用到的却只有几个，当我们频繁的去操作dom，就会造成性能不好的问题。
 [Vue中定义vdom路径 - src/core/vdom/vnode.js](https://github.com/vuejs/vue/blob/dev/src/core/vdom/vnode.js)
 
 ```js
@@ -121,7 +125,7 @@ export function createElement (
 }
 ```
 createElement函数里定义数据，
-判断data是不是一个数组对象或原始类型值，即：string、number、boolean以及 symbol。
+判断data是不是一个数组对象或原始类型值，即：string、number、boolean,function以及 symbol。
 函数最后执行_createElement，相当于是封装了_createElement
 
 
@@ -219,8 +223,9 @@ function _createElement (
 `normalizationType` : 子节点的数据类型
 
 
-## updateChildren
+## snabbdom 更新dom
 
+vue的
 这一步部分主要是首次渲染和数据更新的核心代码（diff算法），渲染真实dom节点到页面上
 
 然后开始将旧子节点组和新子节点组进行逐一比对，直到遍历完任一子节点组，比对策略有5种：

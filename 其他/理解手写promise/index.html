@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <title>Document</title>
+</head>
+<body>
+    
+</body>
+<script>
+/*
+    promise规定了一种方法，就是在then里面返回一个新的promise,称为promise2：promise2 = new Promise((resolve, reject)=>{})
+*/
+function thenPromise(PromiseRelase, x, resolve, reject){
+    /**
+        判断x是不是在等待自己的resolve
+        let p = new Promise(resolve => {
+            resolve(0);
+        });
+        var p2 = p.then(data => {
+            // 循环引用，自己等待自己完成，一辈子完不成
+            return p2;
+        })
+    */
+    if(x === PromiseRelase){ 
+        return reject(TypeError('Chaining cycle detected for promise'))
+    }
+    let repeat; //  防止重复调用
+    if(x != null && (typeof x === 'object' || typeof x === 'function')){
+        try {
+            //  Promise A+规定，声明then == x的方法,,,
+            let then = x.then
+            //  如果then不是一个方法，也就是说then不是一个new promise，是一个普通的值
+            if(typeof then == 'function'){
+                //  x是一个new Promise，所以会有then方法
+                then.call(x, y => {
+                    if(repeat) return;
+                    repeat = true;
+                    //  如果resolve还是一个promise，继续递归解析
+                    thenPromise(PromiseRelase, y, resolve, reject)
+                }, e => {
+                    if(repeat) return;
+                    repeat = true;
+                    reject(e)
+                })
+                
+            }else{
+                resolve(x)
+            }
+        } catch (e) {
+            //  异常也会报错
+            if(repeat) return;
+            repeat = true;
+            reject(e)
+        }
+    }else{
+        //  x是一个普通值，可以直接输出
+        resolve(x)
+    }
+}
+
+class Promise{
+    constructor(fn){
+        this.state = 'pending'; //  当前状态值, pending---等待，resolve---成功，reject---失败
+        this.value = null; //  成功的值
+        this.err = null; //  失败的原因
+        this.onFulfilledCallbacks = [] //  存放then成功的数组
+        this.onRejectedCallbacks = [] //  存放this失败的数组
+        let resolve = value => { // 成功的回调
+            if(this.state == 'pending'){ //  等待的状态下赋值并且执行成功数组的回调
+                this.value = value
+                this.state = 'fulfilled';
+                this.onFulfilledCallbacks.forEach(fn => fn()) //  赋值后依次执行成功里的回调
+            }
+        }
+        let reject = err => { //  与resolve同理
+            if(this.state == 'pending'){
+                this.err = err
+                this.state = 'rejected'
+                this.onRejectedCallbacks.forEach(fn => fn()) //  赋值后依次执行失败里的回调
+            }
+        }
+
+
+        try {
+            fn(resolve, reject);
+        } catch (error) {
+            reject(error)
+        }
+    }
+    
+
+    then(onFulfilled, onRejected){
+        // 如果不是function，则直接输出值
+        onFulfilled = typeof onFulfilled === 'function' ? onFulfilled : value => value;
+        onRejected = typeof onRejected === 'function' ? onRejected : err => ( TypeError(err) );
+
+        
+        let PromiseRelase = new Promise( (resolve, reject) => {//  声明要返回的promise，用于链式调用then
+            if(this.state == 'fulfilled'){
+                //  使用setTimeout()实现then中onFulfilled和onRejected不能同步调用，只能异步调用,Promise A+规范规定
+                setTimeout(() => {
+                    try {
+                        var x = onFulfilled(this.value) //  相当于 x.then( onFulfilled(this.value) => {...}) value就是resolve的值
+                        //  将then--------return的x值传给下一个then
+                        thenPromise(PromiseRelase, x, resolve, reject)
+                    } catch (e) {
+                        reject(e)
+                    }
+                }, 0)
+            }
+            if(this.state == 'reject'){
+                setTimeout(()=>{
+                    try {
+                        var x = onRejected(this.err) //  同上
+                        thenPromise(PromiseRelase, x, resolve, reject)
+                    } catch (e) {
+                        reject(e)
+                    }
+                }, 0)
+            }
+
+
+            if(this.state == 'pending'){ //  当异步时，state还未改变
+                this.onFulfilledCallbacks.push(()=>{ //  将成功的回调保存至数组中，当resolve执行时执行数组中的回调函数
+                    setTimeout(() => {
+                        try {
+                            var x = onFulfilled(this.value)
+                            thenPromise(PromiseRelase, x, resolve, reject)
+                        } catch (e) {
+                            reject(e)
+                        }
+                    }, 0)
+                })
+                this.onRejectedCallbacks.push(()=>{ //  将失败的回调保存至数组中，当reject执行时执行数组中的回调函数
+                    var x = onRejected(this.err)
+                    thenPromise(PromiseRelase, x, resolve, reject)
+                })
+            }
+        })
+        //  链式then
+        return PromiseRelase;
+    }
+}
+
+
+var pro = new Promise(rev  => {
+    rev(123)
+})
+pro.then(res => {
+    return new Promise(rev => {
+        rev(1111)
+    })
+}).then( res => {
+    return new Promise(rev => {
+        rev(222)
+    })
+}).then( res => {
+    // console.log(res)
+})
+
+//  v8官网实现promise：https://chromium.googlesource.com/v8/v8/+/3.29.45/src/promise.js?autodive=0/
+//  https://juejin.im/post/5b2f02cd5188252b937548ab#heading-0
+</script>
+</html>
