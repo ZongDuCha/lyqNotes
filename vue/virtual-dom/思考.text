@@ -1,3 +1,0 @@
-virtual-dom是一个简单的对象去代替复杂的dom对象。
-
-vue里的virtual-dom会比较复杂，因为考虑render，坏境，钩子函数

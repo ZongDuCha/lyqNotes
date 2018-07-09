@@ -10,7 +10,7 @@
 
 * 在js里操作数据更加高效，快捷，提高了性能，优化了dom操作
 
-* 当组件状态发生更新时，然后触发Virtual Dom数据的变化，然后通过Virtual Dom和真实DOM的比对，再对真实DOM更新。可以简单认为Virtual Dom是真实DOM的缓存。
+* 当组件状态发生更新时，然后触发Virtual Dom数据的变化，然后通过Virtual Dom和真实DOM的diff比对，再对真实DOM更新。可以简单认为Virtual Dom是真实DOM的缓存。
 
 基于 Virtual DOM 的数据更新与UI同步机制:
 ![](https://user-gold-cdn.xitu.io/2018/5/24/163904e89b21b515?imageView2/0/w/1280/h/960/format/webp/ignore-error/1)
@@ -18,7 +18,22 @@
 初始渲染时，首先将渲染为Virtual dom,然后在转化为dom
 ![](https://user-gold-cdn.xitu.io/2017/5/16/39eac671c7fae8f73917ba1e6d06daa8?imageView2/0/w/1280/h/960/format/webp/ignore-error/1)
 
-数据更新时，渲染得到新的virtual dom,与上次的virtual dom进行diff比较
+数据更新时，渲染得到新的virtual dom,与上次的virtual dom进行diff比较,记录所有有差异的dom节点，然后在patch中更新ui
+
+![](https://cythilya.github.io/assets/2017-04-08-vue-rendering-flow.png)
+
+说明上图过程：
+* template 经由HTML parser 解析得到node object，对这个object 进行模版语法解析，转为AST node，最后生成一棵完整的AST tree (抽象语法树，abstract syntax tree)。
+* 使用AST tree 生成渲染函数(render function)，执行渲染函数会得到v-node。
+* watcher 搜集依赖、经由observer 对v-node 深度数据绑定和更新。
+* v-node 经由patch 后render 为真正的HTML。
+
+
+
+![](https://cythilya.github.io/assets/2017-04-11-vue-rendering-flow.png)
+
+* 若是已经parse 过的template，则会做更新，例如：比对、重新绑定数据、更新必要的DOM element。
+* Vue.js和React.js的virtual DOM基本上皆使用snabbdom
 
 
 
@@ -125,7 +140,7 @@ export function createElement (
 }
 ```
 createElement函数里定义数据，
-判断data是不是一个数组对象或原始类型值，即：string、number、boolean,function以及 symbol。
+判断data是不是一个数组对象或原始类型值，即：string、number、boolean,function,object以及 symbol。
 函数最后执行_createElement，相当于是封装了_createElement
 
 
@@ -221,24 +236,364 @@ function _createElement (
 `data` : Vnode的数据
 `children` : Vnode的子节点
 `normalizationType` : 子节点的数据类型
+其次检查了是不是组件，如果是组件就执行`createComponent`，否则执行`new VNode`
 
 
-## snabbdom 更新dom
+### html-parse
+- 比如`<div><div></div></div>`
+- 先匹配到 <   匹配到这个字符我就可以认为是开始标签，后面的要么是子级的开始标签，要么是结束标签。
 
-vue的
-这一步部分主要是首次渲染和数据更新的核心代码（diff算法），渲染真实dom节点到页面上
+- 用正则匹配从<到后面的字符，如果是开始标签，现在记录一下，啊，我遇到了一个开始标签`<div>`  顺便用正则记录attrs
+
+- 现在我们匹配走走走。。。走到`<div></div></div>`
+
+- 又匹配到一个 < 。发现是开始标签，再次记录，啊，我又遇到一个开始标签  `<div>`  顺便用正则记录attrs
+
+- 现在我们匹配走走走。。。走到`</div></div>  `
+
+- 又匹配到一个 < 老步骤啊。
+
+- 发现是一个结束标签`</div>` ,它是谁的结束标签？想一想。。按照记录的应该是最后一个遇到的开始标签。  第一个遇到的结束标签不就是最后一个开始标签的结束么？
+
+- 结束了一个。 如此循环下去 每当遇到一个开始标签时就开始记录，然后遇到结束标签才清除掉。
+
+```js
+/**
+ * Not type-checking this file because it's mostly vendor code.
+ */
+
+/*!
+ * HTML Parser By John Resig (ejohn.org)
+ * Modified by Juriy "kangax" Zaytsev
+ * Original code by Erik Arvidsson, Mozilla Public License
+ * http://erik.eae.net/simplehtmlparser/simplehtmlparser.js
+ */
+
+import { makeMap, no } from 'shared/util'
+import { isNonPhrasingTag } from 'web/compiler/util'
+
+// Regular Expressions for parsing tags and attributes
+const attribute = /^\s*([^\s"'<>\/=]+)(?:\s*(=)\s*(?:"([^"]*)"+|'([^']*)'+|([^\s"'=<>`]+)))?/
+// could use https://www.w3.org/TR/1999/REC-xml-names-19990114/#NT-QName
+// but for Vue templates we can enforce a simple charset
+const ncname = '[a-zA-Z_][\\w\\-\\.]*'
+const qnameCapture = `((?:${ncname}\\:)?${ncname})`
+const startTagOpen = new RegExp(`^<${qnameCapture}`)
+const startTagClose = /^\s*(\/?)>/
+const endTag = new RegExp(`^<\\/${qnameCapture}[^>]*>`)
+const doctype = /^<!DOCTYPE [^>]+>/i
+// #7298: escape - to avoid being pased as HTML comment when inlined in page
+const comment = /^<!\--/
+const conditionalComment = /^<!\[/
+
+let IS_REGEX_CAPTURING_BROKEN = false
+'x'.replace(/x(.)?/g, function (m, g) {
+  IS_REGEX_CAPTURING_BROKEN = g === ''
+})
+
+// Special Elements (can contain anything)
+export const isPlainTextElement = makeMap('script,style,textarea', true)
+const reCache = {}
+
+const decodingMap = {
+  '&lt;': '<',
+  '&gt;': '>',
+  '&quot;': '"',
+  '&amp;': '&',
+  '&#10;': '\n',
+  '&#9;': '\t'
+}
+const encodedAttr = /&(?:lt|gt|quot|amp);/g
+const encodedAttrWithNewLines = /&(?:lt|gt|quot|amp|#10|#9);/g
+
+// #5992
+const isIgnoreNewlineTag = makeMap('pre,textarea', true)
+const shouldIgnoreFirstNewline = (tag, html) => tag && isIgnoreNewlineTag(tag) && html[0] === '\n'
+
+function decodeAttr (value, shouldDecodeNewlines) {
+  const re = shouldDecodeNewlines ? encodedAttrWithNewLines : encodedAttr
+  return value.replace(re, match => decodingMap[match])
+}
+
+export function parseHTML (html, options) {
+  const stack = []
+  const expectHTML = options.expectHTML
+  const isUnaryTag = options.isUnaryTag || no
+  const canBeLeftOpenTag = options.canBeLeftOpenTag || no
+  let index = 0
+  let last, lastTag
+  while (html) {
+    last = html
+    // Make sure we're not in a plaintext content element like script/style
+    if (!lastTag || !isPlainTextElement(lastTag)) {
+      let textEnd = html.indexOf('<')
+      if (textEnd === 0) {
+        // 解析注释代码 <!-- xx -->
+        if (comment.test(html)) {
+          const commentEnd = html.indexOf('-->')
+
+          if (commentEnd >= 0) {
+            if (options.shouldKeepComment) {
+              options.comment(html.substring(4, commentEnd))
+            }   
+            advance(commentEnd + 3)
+            continue
+          }
+        }
+
+        // http://en.wikipedia.org/wiki/Conditional_comment#Downlevel-revealed_conditional_comment
+        if (conditionalComment.test(html)) {
+          const conditionalEnd = html.indexOf(']>')
+
+          if (conditionalEnd >= 0) {
+            advance(conditionalEnd + 2)
+            continue
+          }
+        }
+
+        // html头部
+        // Doctype:
+        const doctypeMatch = html.match(doctype)
+        if (doctypeMatch) {
+          advance(doctypeMatch[0].length)
+          continue
+        }
+
+        // End tag: 结束的标签
+        const endTagMatch = html.match(endTag)
+        if (endTagMatch) {
+          const curIndex = index
+          advance(endTagMatch[0].length)
+          parseEndTag(endTagMatch[1], curIndex, index)
+          continue
+        }
+
+        // Start tag: 开始标签
+        const startTagMatch = parseStartTag()
+        if (startTagMatch) {
+          handleStartTag(startTagMatch)
+          if (shouldIgnoreFirstNewline(lastTag, html)) {
+            advance(1)
+          }
+          continue
+        }
+      }
+
+      // 解析纯文本
+      let text, rest, next
+      if (textEnd >= 0) {
+        rest = html.slice(textEnd)
+        while (
+          !endTag.test(rest) &&
+          !startTagOpen.test(rest) &&
+          !comment.test(rest) &&
+          !conditionalComment.test(rest)
+        ) {
+          // < in plain text, be forgiving and treat it as text
+          // 解析  123123</div>,,<前的内容 123123
+          next = rest.indexOf('<', 1)
+          if (next < 0) break
+          textEnd += next
+          rest = html.slice(textEnd)
+        }
+        text = html.substring(0, textEnd)
+        advance(textEnd)
+      }
+
+      if (textEnd < 0) {
+        text = html
+        html = ''
+      }
+
+      if (options.chars && text) {
+        // 文本解析完之后调用,包括文本自身
+        options.chars(text)
+      }
+    } else {
+      let endTagLength = 0;
+      const stackedTag = lastTag.toLowerCase()
+      const reStackedTag = reCache[stackedTag] || (reCache[stackedTag] = new RegExp('([\\s\\S]*?)(</' + stackedTag + '[^>]*>)', 'i'))
+      const rest = html.replace(reStackedTag, function (all, text, endTag) {
+        endTagLength = endTag.length
+        if (!isPlainTextElement(stackedTag) && stackedTag !== 'noscript') {
+          // 解析 '<!-- 123 -->'.replace(/<!\--([\s\S]*?)-->/g, '$1')   123 
+          text = text
+            .replace(/<!\--([\s\S]*?)-->/g, '$1') // #7298
+            .replace(/<!\[CDATA\[([\s\S]*?)]]>/g, '$1')
+        }
+        if (shouldIgnoreFirstNewline(stackedTag, text)) {
+          text = text.slice(1)
+        }
+        if (options.chars) {
+          // 文本解析完之后调用,包括文本自身
+          options.chars(text)
+        }
+        return ''
+      })
+      index += html.length - rest.length
+      html = rest
+      parseEndTag(stackedTag, index - endTagLength, index)
+    }
+
+    if (html === last) {
+      options.chars && options.chars(html)
+      if (process.env.NODE_ENV !== 'production' && !stack.length && options.warn) {
+        options.warn(`Mal-formatted tag at end of template: "${html}"`)
+      }
+      break
+    }
+  }
+
+  // Clean up any remaining tags
+  parseEndTag()
+
+  function advance (n) {
+    index += n
+    html = html.substring(n)
+  }
+
+  // 解析开始表亲啊
+  function parseStartTag () {
+    const start = html.match(startTagOpen)
+    if (start) {
+      const match = {
+        tagName: start[1],
+        attrs: [],
+        start: index
+      }
+      advance(start[0].length)
+      let end, attr
+      while (!(end = html.match(startTagClose)) && (attr = html.match(attribute))) {
+        advance(attr[0].length)
+        // attr 是标签名
+        match.attrs.push(attr)
+      }
+      if (end) {
+        match.unarySlash = end[1]
+        advance(end[0].length)
+        match.end = index
+        return match
+      }
+    }
+  }
+
+  function handleStartTag (match) {
+    const tagName = match.tagName
+    const unarySlash = match.unarySlash
+
+    if (expectHTML) {
+      if (lastTag === 'p' && isNonPhrasingTag(tagName)) {
+        parseEndTag(lastTag)
+      }
+      if (canBeLeftOpenTag(tagName) && lastTag === tagName) {
+        parseEndTag(tagName)
+      }
+    }
+
+    const unary = isUnaryTag(tagName) || !!unarySlash
+
+    const l = match.attrs.length
+    const attrs = new Array(l)
+    for (let i = 0; i < l; i++) {
+      const args = match.attrs[i]
+      // hackish work around FF bug https://bugzilla.mozilla.org/show_bug.cgi?id=369778
+      if (IS_REGEX_CAPTURING_BROKEN && args[0].indexOf('""') === -1) {
+        if (args[3] === '') { delete args[3] }
+        if (args[4] === '') { delete args[4] }
+        if (args[5] === '') { delete args[5] }
+      }
+      const value = args[3] || args[4] || args[5] || ''
+      const shouldDecodeNewlines = tagName === 'a' && args[1] === 'href'
+        ? options.shouldDecodeNewlinesForHref
+        : options.shouldDecodeNewlines
+      attrs[i] = {
+        name: args[1],
+        value: decodeAttr(value, shouldDecodeNewlines)
+      }
+    }
+
+    if (!unary) {
+      stack.push({ tag: tagName, lowerCasedTag: tagName.toLowerCase(), attrs: attrs })
+      lastTag = tagName
+    }
+
+    if (options.start) {
+      options.start(tagName, attrs, unary, match.start, match.end)
+    }
+  }
+
+  function parseEndTag (tagName, start, end) {
+    let pos, lowerCasedTagName
+    if (start == null) start = index
+    if (end == null) end = index
+
+    if (tagName) {
+      lowerCasedTagName = tagName.toLowerCase()
+    }
+
+    // Find the closest opened tag of the same type
+    if (tagName) {
+      for (pos = stack.length - 1; pos >= 0; pos--) {
+        if (stack[pos].lowerCasedTag === lowerCasedTagName) {
+          break
+        }
+      }
+    } else {
+      // If no tag name is provided, clean shop
+      pos = 0
+    }
+
+    if (pos >= 0) {
+      // Close all the open elements, up the stack
+      for (let i = stack.length - 1; i >= pos; i--) {
+        if (process.env.NODE_ENV !== 'production' &&
+          (i > pos || !tagName) &&
+          options.warn
+        ) {
+          options.warn(
+            `tag <${stack[i].tag}> has no matching end tag.`
+          )
+        }
+        if (options.end) {
+          options.end(stack[i].tag, start, end)
+        }
+      }
+
+      // Remove the open elements from the stack
+      stack.length = pos
+      lastTag = pos && stack[pos - 1].tag
+    } else if (lowerCasedTagName === 'br') {
+      if (options.start) {
+        options.start(tagName, [], true, start, end)
+      }
+    } else if (lowerCasedTagName === 'p') {
+      if (options.start) {
+        options.start(tagName, [], false, start, end)
+      }
+      if (options.end) {
+        options.end(tagName, start, end)
+      }
+    }
+  }
+}
+```
+
+
+### patch 更新dom
+
+这一步部分主要是数据更新的核心代码（diff算法），渲染真实dom节点到页面上
 
 然后开始将旧子节点组和新子节点组进行逐一比对，直到遍历完任一子节点组，比对策略有5种：
 * oldStartVnode和newStartVnode进行比对，如果相似，则进行patch，然后新旧头索引都后移
 * oldEndVnode和newEndVnode进行比对，如果相似，则进行patch，然后新旧尾索引前移
 * oldStartVnode和newEndVnode进行比对，如果相似，则进行patch，将旧节点移位到最后
 * oldEndVnode和newStartVnode进行比对，处理和上面类似，只不过改为左移
-
 * 如果以上情况都失败了，我们就只能复用key相同的节点了。首先我们要通过createKeyToOldIdx
 * 遍历完之后，将剩余的新Vnode添加到最后一个新节点的位置后或者删除多余的旧节点
 
 ![](https://images2015.cnblogs.com/blog/572874/201705/572874-20170505153104851-108994539.png)
-vue的`updateChildren`比较复杂，来看看带注释的简化版，也是snabbdom的核心源码:
+
+vue的`update`比较复杂，来看看带注释的简化版，其思想都差不多，也是snabbdom的核心源码:
 ```js
   /**
    *
@@ -281,11 +636,11 @@ function updateChildren(parentElm, oldCh, newCh, insertedVnodeQueue) {
       //新尾索引向前
       newEndVnode = newCh[--newEndIdx];
     }
-      //如果旧头索引节点和新头索引节点相似，可以通过移动来复用
-      //如旧节点为【5,1,2,3,4】，新节点为【1,2,3,4,5】，如果缺乏这种判断，意味着
-      //那样需要先将5->1,1->2,2->3,3->4,4->5五次删除插入操作，即使是有了key-index来复用，
-      // 也会出现【5,1,2,3,4】->【1,5,2,3,4】->【1,2,5,3,4】->【1,2,3,5,4】->【1,2,3,4,5】
-      // 共4次操作，如果有了这种判断，我们只需要将5插入到最后一次操作即可
+      //  如果旧头索引节点和新头索引节点相似，可以通过移动来复用
+      //  如旧节点为【5,1,2,3,4】，新节点为【1,2,3,4,5】，如果缺乏这种判断，意味着
+      //  那样需要先将5->1,1->2,2->3,3->4,4->5五次删除插入操作，即使是有了key-index来复用，
+      //  也会出现【5,1,2,3,4】->【1,5,2,3,4】->【1,2,5,3,4】->【1,2,3,5,4】->【1,2,3,4,5】
+      //  共4次操作，如果有了这种判断，我们只需要将5插入到最后一次操作即可
     else if (sameVnode(oldStartVnode, newEndVnode)) { // Vnode moved right
       patchVnode(oldStartVnode, newEndVnode, insertedVnodeQueue);
       api.insertBefore(parentElm, oldStartVnode.elm, api.nextSibling(oldEndVnode.elm));
@@ -335,3 +690,8 @@ function updateChildren(parentElm, oldCh, newCh, insertedVnodeQueue) {
   }
 }
 ```
+
+https://zhuanlan.zhihu.com/p/24311601
+http://hcysun.me/vue-design/art/84vue-vdom.html
+https://johnresig.com/files/htmlparser.js
+![](https://pic1.zhimg.com/v2-be94fd2b90a02196edcfc6af5c176dc8_r.jpg)
