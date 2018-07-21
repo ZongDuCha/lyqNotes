@@ -116,7 +116,7 @@ vue的vdom借鉴了一个开源库[snabbdom](https://github.com/snabbdom/snabbdo
 
 ## createElement
 这一部分是创建virtual dom
-他定义在 [src/core/vdom/create-elemenet.js](https://github.com/vuejs/vue/blob/dev/src/core/vdom/create-elemenet.js)
+他定义在 [src/core/vdom/create-elemenet.js](https://github.com/vuejs/vue/blob/dev/src/core/vdom/create-element.js)
 ```js
 // wrapper function for providing a more flexible interface
 // without getting yelled at by flow
@@ -136,6 +136,7 @@ export function createElement (
   if (isTrue(alwaysNormalize)) {
     normalizationType = ALWAYS_NORMALIZE
   }
+  /*创建虚拟节点*/
   return _createElement(context, tag, data, children, normalizationType)
 }
 ```
@@ -145,6 +146,7 @@ createElement函数里定义数据，
 
 
 ```js
+/*创建虚拟节点*/
 function _createElement (
   context: Component,
   tag?: string | Class<Component> | Function | Object,
@@ -152,6 +154,10 @@ function _createElement (
   children?: any,
   normalizationType?: number
 ): VNode | Array<VNode> {
+  /*
+    如果data未定义（undefined或者null）或者是data的__ob__已经定义（代表已经被observed，上面绑定了Oberver对象），
+    那么创建一个空节点
+  */
   if (isDef(data) && isDef((data: any).__ob__)) {
     process.env.NODE_ENV !== 'production' && warn(
       `Avoid using observed data object as vnode data: ${JSON.stringify(data)}\n` +
@@ -164,6 +170,7 @@ function _createElement (
   if (isDef(data) && isDef(data.is)) {
     tag = data.is
   }
+  /*如果tag不存在也是创建一个空节点*/
   if (!tag) {
     // in case of component :is set to falsy value
     return createEmptyVNode()
@@ -180,6 +187,7 @@ function _createElement (
       )
     }
   }
+  // 默认作用域插槽
   // support single function children as default scoped slot
   if (Array.isArray(children) &&
     typeof children[0] === 'function'
@@ -197,7 +205,9 @@ function _createElement (
   // tag表示标签名，可以是string，也可以是component
   if (typeof tag === 'string') {
     let Ctor
+    // getTagNamespace 获取tag的名字空间
     ns = (context.$vnode && context.$vnode.ns) || config.getTagNamespace(tag)
+    // 判断是否是保留的标签
     if (config.isReservedTag(tag)) {
       // platform built-in elements
       vnode = new VNode(
@@ -452,7 +462,7 @@ export function parseHTML (html, options) {
     html = html.substring(n)
   }
 
-  // 解析开始表亲啊
+  // 解析开始标签
   function parseStartTag () {
     const start = html.match(startTagOpen)
     if (start) {
@@ -612,6 +622,9 @@ function updateChildren(parentElm, oldCh, newCh, insertedVnodeQueue) {
   var newEndVnode = newCh[newEndIdx];
   var oldKeyToIdx, idxInOld, elmToMove, before;
 
+  // 当老节点开始索引 小于等于 老节点的结尾索引
+  // 并且新节点开始索引 小于等于 新节点的结尾索引
+  // 的时候结束整个循环
   while (oldStartIdx <= oldEndIdx && newStartIdx <= newEndIdx) {
     if (isUndef(oldStartVnode)) {
       oldStartVnode = oldCh[++oldStartIdx]; // Vnode has been moved left
@@ -691,7 +704,7 @@ function updateChildren(parentElm, oldCh, newCh, insertedVnodeQueue) {
 }
 ```
 
-https://zhuanlan.zhihu.com/p/24311601
-http://hcysun.me/vue-design/art/84vue-vdom.html
-https://johnresig.com/files/htmlparser.js
+- https://zhuanlan.zhihu.com/p/24311601
+- http://hcysun.me/vue-design/art/
+- https://johnresig.com/files/htmlparser.js
 ![](https://pic1.zhimg.com/v2-be94fd2b90a02196edcfc6af5c176dc8_r.jpg)
