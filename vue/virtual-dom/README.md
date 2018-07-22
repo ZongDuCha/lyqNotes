@@ -703,7 +703,7 @@ function updateChildren(parentElm, oldCh, newCh, insertedVnodeQueue) {
 ```
 
 ## patchVnode  
-### 对真实dom更新操作
+### 对真实dom局部更新操作
 https://github.com/vuejs/vue/blob/dev/src/core/vdom/patch.js
 ```js
   // 根据不同的状态对dom做合理的更新操作（添加，移动，删除）整个过程还会依次调用prepatch,update,postpatch等钩子函数
