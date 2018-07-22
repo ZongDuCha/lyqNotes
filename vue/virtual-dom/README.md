@@ -33,8 +33,7 @@
 ![](https://cythilya.github.io/assets/2017-04-11-vue-rendering-flow.png)
 
 * 若是已经parse 过的template，则会做更新，例如：比对、重新绑定数据、更新必要的DOM element。
-* Vue.js和React.js的virtual DOM基本上皆使用snabbdom
-
+* vue的vdom借鉴了一个开源库[snabbdom](https://github.com/snabbdom/snabbdom)思想，结合vue的特点
 
 
 ## vdom的数据定义
@@ -50,25 +49,17 @@ export default class VNode {
   elm: Node | void;
   ns: string | void;
   context: Component | void; // rendered in this component's scope
+  functionalContext: Component | void; // only for functional component root nodes
   key: string | number | void;
   componentOptions: VNodeComponentOptions | void;
   componentInstance: Component | void; // component instance
   parent: VNode | void; // component placeholder node
-
-  // strictly internal
   raw: boolean; // contains raw HTML? (server only)
   isStatic: boolean; // hoisted static node
   isRootInsert: boolean; // necessary for enter transition check
   isComment: boolean; // empty comment placeholder?
   isCloned: boolean; // is a cloned node?
   isOnce: boolean; // is a v-once node?
-  asyncFactory: Function | void; // async component factory function
-  asyncMeta: Object | void;
-  isAsyncPlaceholder: boolean;
-  ssrContext: Object | void;
-  fnContext: Component | void; // real context vm for functional nodes
-  fnOptions: ?ComponentOptions; // for SSR caching
-  fnScopeId: ?string; // functional scope id support
 
   constructor (
     tag?: string,
@@ -77,46 +68,57 @@ export default class VNode {
     text?: string,
     elm?: Node,
     context?: Component,
-    componentOptions?: VNodeComponentOptions,
-    asyncFactory?: Function
+    componentOptions?: VNodeComponentOptions
   ) {
+    /*当前节点的标签名*/
     this.tag = tag
+    /*当前节点对应的 数据对象*/
     this.data = data
+    /*当前节点的子节点，是一个数组*/
     this.children = children
+    /*当前节点的文本*/
     this.text = text
+    /*当前虚拟节点对应的真实dom节点*/
     this.elm = elm
+    /*当前节点的名字空间*/
     this.ns = undefined
+    /*编译作用域*/
     this.context = context
-    this.fnContext = undefined
-    this.fnOptions = undefined
-    this.fnScopeId = undefined
+    /*函数化组件作用域*/
+    this.functionalContext = undefined
+    /*节点的key属性，被当作节点的标志，用以优化*/
     this.key = data && data.key
+    /*组件的option选项*/
     this.componentOptions = componentOptions
+    /*当前节点对应的组件的实例*/
     this.componentInstance = undefined
+    /*当前节点的父节点*/
     this.parent = undefined
+    /*简而言之就是是否为原生HTML或只是普通文本，innerHTML的时候为true，textContent的时候为false*/
     this.raw = false
+    /*静态节点标志*/
     this.isStatic = false
+    /*是否作为跟节点插入*/
     this.isRootInsert = true
+    /*是否为注释节点*/
     this.isComment = false
+    /*是否为克隆节点*/
     this.isCloned = false
+    /*是否有v-once指令*/
     this.isOnce = false
-    this.asyncFactory = asyncFactory
-    this.asyncMeta = undefined
-    this.isAsyncPlaceholder = false
   }
 
   // DEPRECATED: alias for componentInstance for backwards compat.
-  /* istanbul ignore next */
+  /* istanbul ignore next https://github.com/answershuto/learnVue*/
   get child (): Component | void {
     return this.componentInstance
   }
 }
 ```
-vue的vdom借鉴了一个开源库[snabbdom](https://github.com/snabbdom/snabbdom)思想，结合了vue的特色，相比之下vue的vdom更加复杂交错，许多的交互操作，如果想深入了解，更加推荐先去看snabbdom的源码，简洁纯粹
 
-## createElement
-这一部分是创建virtual dom
-他定义在 [src/core/vdom/create-elemenet.js](https://github.com/vuejs/vue/blob/dev/src/core/vdom/create-element.js)
+## createElement 
+### 创建虚拟节点
+ [src/core/vdom/create-elemenet.js](https://github.com/vuejs/vue/blob/dev/src/core/vdom/create-element.js#L28-#L130)
 ```js
 // wrapper function for providing a more flexible interface
 // without getting yelled at by flow
@@ -187,7 +189,7 @@ function _createElement (
       )
     }
   }
-  // 默认作用域插槽
+  // 作用域插槽 slot
   // support single function children as default scoped slot
   if (Array.isArray(children) &&
     typeof children[0] === 'function'
@@ -214,8 +216,9 @@ function _createElement (
         config.parsePlatformTagName(tag), data, children,
         undefined, undefined, context
       )
+    // 如果不是保留标签，那么会在components里查找是否有定义
     } else if (isDef(Ctor = resolveAsset(context.$options, 'components', tag))) {
-      // component
+      // 创建虚拟组件节点
       vnode = createComponent(Ctor, data, context, children, tag)
     } else {
       // unknown or unlisted namespaced elements
@@ -241,12 +244,7 @@ function _createElement (
   }
 }
 ```
-`context` : Vnode的执行上下文环境
-`tag` : 代表标签
-`data` : Vnode的数据
-`children` : Vnode的子节点
-`normalizationType` : 子节点的数据类型
-其次检查了是不是组件，如果是组件就执行`createComponent`，否则执行`new VNode`
+其次检查是不是组件，如果是组件就执行`createComponent`，否则执行`new VNode`
 
 
 ### html-parse
@@ -276,7 +274,7 @@ function _createElement (
  * HTML Parser By John Resig (ejohn.org)
  * Modified by Juriy "kangax" Zaytsev
  * Original code by Erik Arvidsson, Mozilla Public License
- * http://erik.eae.net/simplehtmlparser/simplehtmlparser.js
+ * http://erik.eae.net/simpleser/simplehtmlparser.js
  */
 
 import { makeMap, no } from 'shared/util'
@@ -702,6 +700,82 @@ function updateChildren(parentElm, oldCh, newCh, insertedVnodeQueue) {
     removeVnodes(parentElm, oldCh, oldStartIdx, oldEndIdx);
   }
 }
+```
+
+## patchVnode  
+### 对真实dom更新操作
+https://github.com/vuejs/vue/blob/dev/src/core/vdom/patch.js
+```js
+  // 根据不同的状态对dom做合理的更新操作（添加，移动，删除）整个过程还会依次调用prepatch,update,postpatch等钩子函数
+  function patchVnode (oldVnode, vnode, insertedVnodeQueue, removeOnly) {
+    // 新旧 vnode 相等
+    if (oldVnode === vnode) {
+      return
+    }
+
+    const elm = vnode.elm = oldVnode.elm
+    if (isTrue(oldVnode.isAsyncPlaceholder)) {
+      if (isDef(vnode.asyncFactory.resolved)) {
+        hydrate(oldVnode.elm, vnode, insertedVnodeQueue)
+      } else {
+        vnode.isAsyncPlaceholder = true
+      }
+      return
+    }
+
+    // 如果新旧 vnode 为静态；新旧 vnode key相同；
+    // 新 vnode 是克隆所得；新 vnode 有 v-once 的属性
+    // 则新 vnode 的 componentInstance 用老的 vnode 的。
+    // 即 vnode 的 componentInstance 保持不变。
+    if (isTrue(vnode.isStatic) &&
+      isTrue(oldVnode.isStatic) &&
+      vnode.key === oldVnode.key &&
+      (isTrue(vnode.isCloned) || isTrue(vnode.isOnce))
+    ) {
+      vnode.componentInstance = oldVnode.componentInstance
+      return
+    }
+
+    let i
+    const data = vnode.data
+    // 执行 data.hook.prepatch 钩子。
+    if (isDef(data) && isDef(i = data.hook) && isDef(i = i.prepatch)) {
+      i(oldVnode, vnode)
+    }
+
+    const oldCh = oldVnode.children
+    const ch = vnode.children
+    if (isDef(data) && isPatchable(vnode)) {
+      // 遍历 cbs，执行 update 方法
+      for (i = 0; i < cbs.update.length; ++i) cbs.update[i](oldVnode, vnode)
+      // 执行 data.hook.update 钩子
+      if (isDef(i = data.hook) && isDef(i = i.update)) i(oldVnode, vnode)
+    }
+    // 旧 vnode 的 text 选项为 undefined
+    if (isUndef(vnode.text)) {
+      if (isDef(oldCh) && isDef(ch)) {
+        // 新旧 vnode 都有 children，且不同，执行 updateChildren 方法。
+        if (oldCh !== ch) updateChildren(elm, oldCh, ch, insertedVnodeQueue, removeOnly)
+      } else if (isDef(ch)) {
+        // 清空文本，添加 vnode
+        if (isDef(oldVnode.text)) nodeOps.setTextContent(elm, '')
+        addVnodes(elm, null, ch, 0, ch.length - 1, insertedVnodeQueue)
+      } else if (isDef(oldCh)) {
+        // 移除 vnode
+        removeVnodes(elm, oldCh, 0, oldCh.length - 1)
+      } else if (isDef(oldVnode.text)) {
+        // 如果新旧 vnode 都是 undefined，清空文本
+        nodeOps.setTextContent(elm, '')
+      }
+    } else if (oldVnode.text !== vnode.text) {
+      // 有不同文本内容，更新文本内容
+      nodeOps.setTextContent(elm, vnode.text)
+    }
+    if (isDef(data)) {
+      // 执行 data.hook.postpatch 钩子，表明 patch 完毕
+      if (isDef(i = data.hook) && isDef(i = i.postpatch)) i(oldVnode, vnode)
+    }
+  }
 ```
 
 - https://zhuanlan.zhihu.com/p/24311601
