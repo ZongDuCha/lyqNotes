@@ -720,6 +720,7 @@ export function createPatchFunction (backend) {
 
   return function patch (oldVnode, vnode, hydrating, removeOnly) {
     if (isUndef(vnode)) {
+      // vnode不存在，表示节点被删除，直接珊姐删除老节点
       if (isDef(oldVnode)) invokeDestroyHook(oldVnode)
       return
     }
@@ -733,6 +734,7 @@ export function createPatchFunction (backend) {
       createElm(vnode, insertedVnodeQueue)
     } else {
       const isRealElement = isDef(oldVnode.nodeType)
+      // 判断老节点的nodeType（元素的节点类型）,并且是相同的节点时直接修改现有节点
       if (!isRealElement && sameVnode(oldVnode, vnode)) {
         // patch existing root node
         patchVnode(oldVnode, vnode, insertedVnodeQueue, removeOnly)
@@ -741,6 +743,7 @@ export function createPatchFunction (backend) {
           // mounting to a real element
           // check if this is server-rendered content and if we can perform
           // a successful hydration.
+          // 当老的vnodes是服务端渲染的元素时，设置 hydrating 为true
           if (oldVnode.nodeType === 1 && oldVnode.hasAttribute(SSR_ATTR)) {
             oldVnode.removeAttribute(SSR_ATTR)
             hydrating = true
@@ -821,6 +824,7 @@ export function createPatchFunction (backend) {
     invokeInsertHook(vnode, insertedVnodeQueue, isInitialPatch)
     return vnode.elm
   }
+  // patch -- end
 }
 
 
