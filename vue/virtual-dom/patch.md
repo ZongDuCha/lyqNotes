@@ -43,6 +43,7 @@ function updateChildren(parentElm, oldCh, newCh, insertedVnodeQueue) {
     } else if (isUndef(oldEndVnode)) {
       oldEndVnode = oldCh[--oldEndIdx];
     }
+    // 当Vnode的tag，key，isComment,data相同,如果是input标签，则判断type类型
     //如果旧头索引节点和新头索引节点相同，调用patchVnode比较两个节点
     else if (sameVnode(oldStartVnode, newStartVnode)) {
       //对旧头索引节点和新头索引节点进行diff更新， 从而达到复用节点效果
@@ -79,23 +80,23 @@ function updateChildren(parentElm, oldCh, newCh, insertedVnodeQueue) {
       oldEndVnode = oldCh[--oldEndIdx];
       newStartVnode = newCh[++newStartIdx];
     }
-    //如果上面的判断都不通过，我们就需要key-index表来达到最大程度复用了
+    // 如果上面的判断都不通过，就需要比较新旧的key来判断
     else {
       //如果不存在旧节点的key-index表，则创建
       if (isUndef(oldKeyToIdx)) oldKeyToIdx = createKeyToOldIdx(oldCh, oldStartIdx, oldEndIdx);
       //找到新节点在旧节点组中对应节点的位置
       idxInOld = oldKeyToIdx[newStartVnode.key];
-      //如果新节点在旧节点中不存在，我们将它插入到旧头索引节点前，然后新头索引向后
+      //如果新节点在旧节点中不存在，将它插入到旧头索引节点前，然后新头索引向后
       if (isUndef(idxInOld)) { // New element
+        // newStartVnode没有key或者是该key没有在老节点中找到则创建一个新的节点
         api.insertBefore(parentElm, createElm(newStartVnode, insertedVnodeQueue), oldStartVnode.elm);
         newStartVnode = newCh[++newStartIdx];
       } else {
-        //如果新节点在就旧节点组中存在，先找到对应的旧节点
+        //如果新节点在就旧节点组中存在，获取同索引 旧节点的key
         elmToMove = oldCh[idxInOld];
         //先将新节点和对应旧节点作更新
         patchVnode(elmToMove, newStartVnode, insertedVnodeQueue);
         //然后将旧节点组中对应节点设置为undefined,代表已经遍历过了，不在遍历，否则可能存在重复插入的问题
-
         oldCh[idxInOld] = undefined;
         //插入到旧头索引节点之前
         api.insertBefore(parentElm, elmToMove.elm, oldStartVnode.elm);
@@ -140,7 +141,14 @@ import {
 export const emptyNode = new VNode('', {}, [])
 
 const hooks = ['create', 'activate', 'update', 'remove', 'destroy']
-
+/*
+  key相同
+  tag相同
+  isComment (注释节点)相同
+  data 是否是当前节点数据对象,是一个vnodData对象
+  满足相同节点的条件
+  sameInputType 同时对input的type按断
+*/
 function sameVnode (a, b) {
   return (
     a.key === b.key && (
@@ -158,6 +166,8 @@ function sameVnode (a, b) {
   )
 }
 
+// 判断当前input 的type是否相同
+// 某些浏览器不支持动态修改input类型
 function sameInputType (a, b) {
   if (a.tag !== 'input') return true
   let i
@@ -535,11 +545,29 @@ export function createPatchFunction (backend) {
     }
   }
 
+  /*
+    1. 如果新旧Vnode是静态，并且key值一样（相同节点），并且Vnode是克隆的或是使用了v-once（值渲染一次）
+    那么只替换elm和componentInstance
+
+    2. 如果新旧节点都有子节点，则对子节点进行diff差异比较操作，调用updateChildren，
+
+    3. 如果旧节点没有子节点，但是新节点有子节点，先清空新节点的文本内容，然后添加新节点的子节点
+
+    4. 新节点没有子节点，但是旧节点有子节点，则删除旧节点的子节点
+
+    5. 新旧节点都没有子节点，那么只是文本的替换
+  */
   function patchVnode (oldVnode, vnode, insertedVnodeQueue, removeOnly) {
+    // 两个节点相同，表示无变化
     if (oldVnode === vnode) {
       return
     }
     const elm = vnode.elm = oldVnode.elm
+    /*
+      如果新旧vnode都是静态的，同时他们的key相同（表示同一节点）
+      如果vnode是克隆的或者是标记了once（v-once只渲染一次）
+      最后只替换elm和componentInstance即可
+    */
     if (isTrue(oldVnode.isAsyncPlaceholder)) {
       if (isDef(vnode.asyncFactory.resolved)) {
         hydrate(oldVnode.elm, vnode, insertedVnodeQueue)
@@ -571,23 +599,35 @@ export function createPatchFunction (backend) {
     const oldCh = oldVnode.children
     const ch = vnode.children
     if (isDef(data) && isPatchable(vnode)) {
+      // 调用upda回调和钩子
       for (i = 0; i < cbs.update.length; ++i) cbs.update[i](oldVnode, vnode)
       if (isDef(i = data.hook) && isDef(i = i.update)) i(oldVnode, vnode)
     }
+    // 这个节点如果没有文本内容
     if (isUndef(vnode.text)) {
       if (isDef(oldCh) && isDef(ch)) {
+        // 如果新节点和旧节点都有 子节点，并且子节点不相同
+        // 那么对子节点 diff对比更新，调用updateChildren函数
         if (oldCh !== ch) updateChildren(elm, oldCh, ch, insertedVnodeQueue, removeOnly)
-      } else if (isDef(ch)) {
+      } else if (isDef(ch)) { // 新节点存在子节点
+        // 如果旧节点 没有子节点，但是新节点有子节点，表示需要添加节点
+        // 如果旧节点有 文本内容，则清空，然后为当前节点添加新节点
         if (isDef(oldVnode.text)) nodeOps.setTextContent(elm, '')
         addVnodes(elm, null, ch, 0, ch.length - 1, insertedVnodeQueue)
       } else if (isDef(oldCh)) {
+        //  旧节点存在子节点，但是新节点没有，表示节点被移除
+        // 移除当前节点的子节点
         removeVnodes(elm, oldCh, 0, oldCh.length - 1)
-      } else if (isDef(oldVnode.text)) {
+      } else if (isDef(oldVnode.text)) { // 旧节点是否有文本内容
+        // 当新旧节点都没有子节点，但是旧节点有文本内容
+        // 清空当前节点的文本
         nodeOps.setTextContent(elm, '')
       }
-    } else if (oldVnode.text !== vnode.text) {
+    } else if (oldVnode.text !== vnode.text) { // 新旧节点的文本内容不相同
+      // 将当前节点的文本内容替换成新节点的文本
       nodeOps.setTextContent(elm, vnode.text)
     }
+    // 调用postpatch钩子函数
     if (isDef(data)) {
       if (isDef(i = data.hook) && isDef(i = i.postpatch)) i(oldVnode, vnode)
     }

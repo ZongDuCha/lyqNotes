@@ -103,6 +103,9 @@ export function parse (
     isUnaryTag: options.isUnaryTag,
     canBeLeftOpenTag: options.canBeLeftOpenTag,
     shouldDecodeNewlines: options.shouldDecodeNewlines,
+    // start 开始标签时执行
+    // end 结束标签时执行
+    // chart 文本内容时执行
     start (tag, attrs, unary) {
       // check namespace.
       // inherit parent ns if there is one
@@ -165,6 +168,7 @@ export function parse (
         processFor(element)
         /*匹配if属性，分别处理v-if、v-else以及v-else-if属性*/
         processIf(element)
+        /* v-once 不可改变的数据  <p v-once>不可以改变：{{ msg }}</p> */
         /*处理v-once属性，https://cn.vuejs.org/v2/api/#v-once*/
         processOnce(element)
         /*处理key属性 https://cn.vuejs.org/v2/api/#key*/
@@ -262,6 +266,7 @@ export function parse (
       }
       if (!unary) {
         currentParent = element
+        // 存入节点
         stack.push(element)
       } else {
         endPre(element)
