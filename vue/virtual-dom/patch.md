@@ -14,14 +14,28 @@
 
 ![](https://images2015.cnblogs.com/blog/572874/201705/572874-20170505153104851-108994539.png)
 
-#### 1. 新头和旧尾节点比较，如果相同，说明原来的旧头的节点被移动到新尾的后面，则用patchVnode函数更新
+#### 1. 新头和旧头比较，或新尾和旧尾比较，如果相同，直接用patchVnode函数更新
+![](./diff-3.jpg)
+
+
+#### 2. 旧头和新尾节点比较，如果相同，说明原来的旧头的节点被移动到新尾的后面，则用patchVnode函数更新
 ![](./diff-1.jpg)
 
-#### 2. 反之，旧尾和新头比较，如果相同，说明原来的旧尾的节点被移动到新头的前面，则用patchVnode函数更新
+#### 3. 反之，旧尾和新头比较，如果相同，说明原来的旧尾的节点被移动到新头的前面，则用patchVnode函数更新
 ![](./diff-2.jpg)
 
-#### 3. 
-![](./diff-3.jpg)
+
+### 4. 以上情况不符合，则通过createKeyToOldIdx获取oldKeyToIdx,里面存放了一个key为旧节点的Vnode，value为对象index徐磊的哈希表，让从这个哈希表中判断是否有与newStartVnode（或newEndVnode）一致的key的旧节点的Vnode，如果相同，会调用patchVnode函数更新，并且会将真实的dom移动到对应的位置
+![](./diff-4.jpg)
+
+### 5. 如果newStartVnode在旧的Vnode找不到一致的key，或者不符合sameVnode，说明这个元素是新增的，就会调用createElm创建新的dom节点
+![](./diff-5.jpg)
+
+
+
+### 6.
+![](./diff-6.jpg)
+
 ```js
   /**
    *
@@ -71,10 +85,6 @@ function updateChildren(parentElm, oldCh, newCh, insertedVnodeQueue) {
       newEndVnode = newCh[--newEndIdx];
     }
       //  如果旧头索引节点和新头索引节点相似，可以通过移动来复用
-      //  如旧节点为【5,1,2,3,4】，新节点为【1,2,3,4,5】，如果缺乏这种判断，意味着
-      //  那样需要先将5->1,1->2,2->3,3->4,4->5五次删除插入操作，即使是有了key-index来复用，
-      //  也会出现【5,1,2,3,4】->【1,5,2,3,4】->【1,2,5,3,4】->【1,2,3,5,4】->【1,2,3,4,5】
-      //  共4次操作，如果有了这种判断，我们只需要将5插入到最后一次操作即可
     else if (sameVnode(oldStartVnode, newEndVnode)) { // Vnode moved right
       patchVnode(oldStartVnode, newEndVnode, insertedVnodeQueue);
       api.insertBefore(parentElm, oldStartVnode.elm, api.nextSibling(oldEndVnode.elm));
@@ -126,7 +136,6 @@ function updateChildren(parentElm, oldCh, newCh, insertedVnodeQueue) {
 ```
 
 
-`对原生dom操作封装`
 ```js
 import VNode, { cloneVNode } from './vnode'
 import config from '../config'
@@ -184,6 +193,7 @@ function sameInputType (a, b) {
   return typeA === typeB || isTextInputType(typeA) && isTextInputType(typeB)
 }
 
+// 将oldVnode数组中位置对oldVnode.key的映射转换为oldVnode.key映射
 function createKeyToOldIdx (children, beginIdx, endIdx) {
   let i, key
   const map = {}
@@ -197,10 +207,8 @@ function createKeyToOldIdx (children, beginIdx, endIdx) {
 export function createPatchFunction (backend) {
   let i, j
   const cbs = {}
-
   const { modules, nodeOps } = backend
-
-  for (i = 0; i < hooks.length; ++i) {
+    for (i = 0; i < hooks.length; ++i) {
     cbs[hooks[i]] = []
     for (j = 0; j < modules.length; ++j) {
       if (isDef(modules[j][hooks[i]])) {
@@ -208,11 +216,13 @@ export function createPatchFunction (backend) {
       }
     }
   }
-
+  // 对真实的dom节点，转换为Vnode
+  // <div id='a' class='b c'></div>
+  // {sel:'div#a.b.c',data:{},children:[],text:undefined,elm:<div id='a' class='b c'>}
   function emptyNodeAt (elm) {
     return new VNode(nodeOps.tagName(elm).toLowerCase(), {}, [], undefined, elm)
   }
-
+  // remove钩子后的回调，实际上是对remove计数的操作，当全部remove后才会从父节点中执行删除
   function createRmCb (childElm, listeners) {
     function remove () {
       if (--remove.listeners === 0) {
@@ -222,7 +232,7 @@ export function createPatchFunction (backend) {
     remove.listeners = listeners
     return remove
   }
-
+  // 删除dom
   function removeNode (el) {
     const parent = nodeOps.parentNode(el)
     // element may have already been removed due to v-html / v-text
@@ -249,6 +259,11 @@ export function createPatchFunction (backend) {
 
   let creatingElmInVPre = 0
 
+
+  // 根据传入的Vnode数据结构，创建真实的dom节点并赋给vnode.elm保存
+  //如果有children则会遍历这些子节点，递归调用createElm
+  // 每创建完一个真实dom节点，就会往队列中创建vnode
+  //当vnode对象全部创建完之后，就调用依次调用这个队列的insertg钩子
   function createElm (
     vnode,
     insertedVnodeQueue,
@@ -408,15 +423,19 @@ export function createPatchFunction (backend) {
     }
   }
 
+  // 判断vnode的children是不是一个数组，如果是，就递归执行createChildren函数
+  // 如果是test就调用createTextNode创建文本内容
   function createChildren (vnode, children, insertedVnodeQueue) {
     if (Array.isArray(children)) {
       if (process.env.NODE_ENV !== 'production') {
         checkDuplicateKeys(children)
       }
       for (let i = 0; i < children.length; ++i) {
+        // 递归
         createElm(children[i], insertedVnodeQueue, vnode.elm, null, true, children, i)
       }
     } else if (isPrimitive(vnode.text)) {
+      // 创建文本内容
       nodeOps.appendChild(vnode.elm, nodeOps.createTextNode(String(vnode.text)))
     }
   }
@@ -465,26 +484,33 @@ export function createPatchFunction (backend) {
     }
   }
 
+  // 将vnode转换用真实dom，然后插入dom树指定的位置
   function addVnodes (parentElm, refElm, vnodes, startIdx, endIdx, insertedVnodeQueue) {
     for (; startIdx <= endIdx; ++startIdx) {
       createElm(vnodes[startIdx], insertedVnodeQueue, parentElm, refElm, false, vnodes, startIdx)
     }
   }
 
+  // 触发destory的回调
+  // destroy函数主要是清除节点与其他实例的关系，解绑所有的指令和时间监听器,但是destroy不会删除节点
   function invokeDestroyHook (vnode) {
     let i, j
     const data = vnode.data
     if (isDef(data)) {
+      // 先触发当前节点的destory回调
       if (isDef(i = data.hook) && isDef(i = i.destroy)) i(vnode)
+      // 在触发全局下的destory回调
       for (i = 0; i < cbs.destroy.length; ++i) cbs.destroy[i](vnode)
     }
     if (isDef(i = vnode.children)) {
       for (j = 0; j < vnode.children.length; ++j) {
+        // 最后递归触发子节点的回调
         invokeDestroyHook(vnode.children[j])
       }
     }
   }
 
+  // 配合invokeDestoryHook和createRmCbs使用，批量删除dom节点
   function removeVnodes (parentElm, vnodes, startIdx, endIdx) {
     for (; startIdx <= endIdx; ++startIdx) {
       const ch = vnodes[startIdx]
@@ -498,7 +524,7 @@ export function createPatchFunction (backend) {
       }
     }
   }
-
+  // 调用删除 钩子函数
   function removeAndInvokeRemoveHook (vnode, rm) {
     if (isDef(rm) || isDef(vnode.data)) {
       let i
@@ -545,7 +571,7 @@ export function createPatchFunction (backend) {
       }
     }
   }
-
+  // 获取节点索引
   function findIdxInOld (node, oldCh, start, end) {
     for (let i = start; i < end; i++) {
       const c = oldCh[i]
@@ -642,6 +668,7 @@ export function createPatchFunction (backend) {
   }
   // patchVnode -- end
 
+  // insertedVnodeQueue的钩子函数都执行一遍
   function invokeInsertHook (vnode, queue, initial) {
     // delay insert hooks for component root nodes, invoke them after the
     // element is really inserted
