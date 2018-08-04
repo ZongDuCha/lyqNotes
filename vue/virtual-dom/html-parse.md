@@ -209,13 +209,13 @@ export function parseHTML (html, options) {
 
   // Clean up any remaining tags
   parseEndTag()
-    // 推进n个字符
+  // 将index推进n个字符，然后从n个字符截取html
   function advance (n) {
     index += n
     html = html.substring(n)
   }
 
-  // 解析开始标签,返回标签名、标签属性和标签起始结束位置
+  // 该方法使用正则匹配获取HTML开始标签，并且将开始标签中的属性都保存到一个数组中。最终返回标签结果：标签名、标签属性和标签起始结束位置
   function parseStartTag () {
     const start = html.match(startTagOpen)
     if (start) {
@@ -240,6 +240,7 @@ export function parseHTML (html, options) {
     }
   }
 
+  // 处理开始标签，提取节点属性
   function handleStartTag (match) {
     const tagName = match.tagName
     const unarySlash = match.unarySlash
@@ -285,6 +286,7 @@ export function parseHTML (html, options) {
     }
   }
 
+  // 处理结束标签
   function parseEndTag (tagName, start, end) {
     let pos, lowerCasedTagName
     if (start == null) start = index
@@ -295,6 +297,7 @@ export function parseHTML (html, options) {
     }
 
     // Find the closest opened tag of the same type
+    // 找到结束标签对应的tag位置
     if (tagName) {
       for (pos = stack.length - 1; pos >= 0; pos--) {
         if (stack[pos].lowerCasedTag === lowerCasedTagName) {
