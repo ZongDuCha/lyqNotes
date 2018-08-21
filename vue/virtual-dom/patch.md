@@ -173,8 +173,8 @@ function patch (oldVnode, vnode, hydrating, removeOnly) {
 
     const oldCh = oldVnode.children
     const ch = vnode.children
+    // 调用前调用生命周期钩子，更新节点自身的属性，class,style,id...
     if (isDef(data) && isPatchable(vnode)) {
-      // 调用upda回调和钩子
       for (i = 0; i < cbs.update.length; ++i) cbs.update[i](oldVnode, vnode)
       if (isDef(i = data.hook) && isDef(i = i.update)) i(oldVnode, vnode)
     }
@@ -660,6 +660,7 @@ export function createPatchFunction (backend) {
     return isDef(vnode.tag)
   }
 
+  // 用于生命周期 inserted 阶段，记录下所有新插入的节点以备调用
   // 调用初始化的create钩子
   function invokeCreateHooks (vnode, insertedVnodeQueue) {
     for (let i = 0; i < cbs.create.length; ++i) {

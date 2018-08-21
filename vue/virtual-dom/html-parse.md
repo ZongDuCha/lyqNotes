@@ -1,21 +1,18 @@
 ### html-parse
-- 比如`<div><div></div></div>`
-- 先匹配到 <   匹配到这个字符我就可以认为是开始标签，后面的要么是子级的开始标签，要么是结束标签。
+  - src/compiler/parser/html-parser
 
-- 用正则匹配从<到后面的字符，如果是开始标签，现在记录一下，啊，我遇到了一个开始标签`<div>`  顺便用正则记录attrs
+  - 循环解析 `template`，用正则匹配相应元素（开始和结束标签，注释节点，文档类型...）,不同的情况不同处理
 
-- 现在我们匹配走走走。。。走到`<div></div></div>`
+  - 循环中利用`advance函数`不断的前进字符，直到结束
 
-- 又匹配到一个 < 。发现是开始标签，再次记录，啊，我又遇到一个开始标签  `<div>`  顺便用正则记录attrs
+  - 对于注释节点和文档类型的匹配，只advance前进字符串到结尾
 
-- 现在我们匹配走走走。。。走到`</div></div>  `
+  - 匹配和解析开始标签，先通过正则`startTagOpen `匹配开始 标签名，调用`handleStartTag `解析,正则`match`匹配节点属性(class,id,自定义属性...)，将属性添加到match.attrs,判断如果不是一元标签类似`<img>`,`<br>`,`<hr>`，就遍历处理attrs属性, 如果是一元标签，就保存开始标签名压入stack，利用`advance函数`前进至开始标签的闭合符，
 
-- 又匹配到一个 < 老步骤啊。
+  - 匹配和解析闭合标签，先通过正则`endTag`匹配闭合标签，前进至闭合标签末尾，调用`parseEndTag`倒序遍历解析，判断闭合标签名跟handleStartTag保存的开始标签名匹配比较，如果不同，就报错，如果匹配就从stack里弹出开始标签名，并从stack尾部获取`lastTag`,最后调用`option.end`。
 
-- 发现是一个结束标签`</div>` ,它是谁的结束标签？想一想。。按照记录的应该是最后一个遇到的开始标签。  第一个遇到的结束标签不就是最后一个开始标签的结束么？
-
-- 结束了一个。 如此循环下去 每当遇到一个开始标签时就开始记录，然后遇到结束标签才清除掉。
-
+  - 接下来就是截取html的text文本，如果textEnd大于或等于0，就说明从当前位置到textEnd的位置都是文本，并且如果有 < 的字符，就继续查找真正文本结束的位置，调用`advance`前进字符, 如果textEnd小于0的情况下，说明整个`tepmlate`解析完了或者没有 文本了，就把剩余的html传给text，清空html,最后调用chars 回调函数
+  
 ```js
 /**
  * Not type-checking this file because it's mostly vendor code.
@@ -26,7 +23,7 @@
  * Modified by Juriy "kangax" Zaytsev
  * Original code by Erik Arvidsson, Mozilla Public License
  * http://erik.eae.net/simpleser/simplehtmlparser.js
- */
+*/
 
 import { makeMap, no } from 'shared/util'
 import { isNonPhrasingTag } from 'web/compiler/util'
@@ -103,7 +100,6 @@ export function parseHTML (html, options) {
         // http://en.wikipedia.org/wiki/Conditional_comment#Downlevel-revealed_conditional_comment
         if (conditionalComment.test(html)) {
           const conditionalEnd = html.indexOf(']>')
-
           if (conditionalEnd >= 0) {
             advance(conditionalEnd + 2)
             continue
@@ -130,6 +126,7 @@ export function parseHTML (html, options) {
         // 处理起始标签
         const startTagMatch = parseStartTag()
         if (startTagMatch) {
+          // 解析头部 节点属性
           handleStartTag(startTagMatch)
           if (shouldIgnoreFirstNewline(lastTag, html)) {
             advance(1)
@@ -258,6 +255,7 @@ export function parseHTML (html, options) {
 
     const l = match.attrs.length
     const attrs = new Array(l)
+    // 循环提取开始标签的节点属性,存入attrs
     for (let i = 0; i < l; i++) {
       const args = match.attrs[i]
       // hackish work around FF bug https://bugzilla.mozilla.org/show_bug.cgi?id=369778

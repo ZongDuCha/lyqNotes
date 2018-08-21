@@ -1,20 +1,25 @@
-# virtual dom
-
-### 创建真实DOM的代价高
-* 真实的DOM节点node实现的属性很多，而vnode仅仅实现一些必要的属性，相比起来，创建一个vnode的成本比较低。
+### Virtual Dom 是什么
+ 是利用js双缓存dom节点经过diff算法比较，只更新需要更新的dom，实现高效的更新页面，React和Ember早就开始用虚拟DOM提高页面更新的速度，随后在Vue.js 2.0中也添加了这一技术
 
 
-* 一个元素的属性将近有200多个，但是具体用到的却只有几个，当我们频繁的去操作dom，就会造成性能不好的问题。
+### 为什么要用Virtual Dom
 
-* 如果在js里操作数据更加高效，快捷，提高了性能，优化了dom操作
+1. 如果页面有成千上万的dom节点时，每更新一次就去创建这么多的节点,不断的对页面造成重绘、重排...，产生的性能和体验都非常差
 
-* 采用virtual dom的思路,不仅提升了dom操作的效率，主要思想就是模拟dom的树状结构，在内存中创建保存要映射的dom节点信息的数据
-
-* 在，先通过对节点数据进行diff比较后记录差异结果，在一次性对dom进行批量更新操作，所有复杂的操作
-
-* 交互都在js世界中的virtual dom中处理完成,最后将更新好的节点数据渲染成真实的dom节点。
+2. 2. Virtual Dom不仅仅提高页面更新速度，还可以扩展添加其他技术，比如Vue里的v-for,v-if,v-else,v-model,自定义指令,绑定事件...
 
 
+3. 改变了我们写html的方法，摆脱了获取dom节点对象，对其赋值，取值，时间绑定等操作，
+实现了MVVM模式开发，既数据，操作，条件渲染写在html页面上
+
+
+### Virtual DOM 是怎么实现？
+每次在数据改变之后，就会在UI更新之前创建一个新的Virtual DOM。更新浏览器的DOM分三个步骤：
+1. 首次渲染之后只要数据发生改变，就会重新生成一个完整的Virtual DOM。
+2. 重新diff对比计算比较出新的和之前的Virtual DOM的差异。
+3. 更新真实DOM中真正发生改变的部分，就像是给DOM打了个补丁。
+
+### Vue中的Virtual Dom 原理
 
 ![](https://cythilya.github.io/assets/2017-04-08-vue-rendering-flow.png)
 
@@ -26,7 +31,7 @@
 
 
 数据更新时，渲染得到新的virtual dom,与上次的virtual dom进行diff比较,记录所有有差异的dom节点，然后在patch中更新ui
-![](https://cythilya.github.io/assets/2017-04-11-vue-rendering-flow.png)
+![](2017-04-11-vue-rendering-flow.png)
 
 * 若是已经parse 过的template，则会做更新，例如：比对、重新绑定数据、更新必要的DOM element。
 
@@ -51,4 +56,4 @@
 - http://hcysun.me/vue-design/art/
 - https://johnresig.com/files/htmlparser.js
 - https://www.jianshu.com/p/9e9477847ba1
-![](https://pic1.zhimg.com/v2-be94fd2b90a02196edcfc6af5c176dc8_r.jpg)
+- https://github.com/vuejs/vue/blob/dev/src/core/instance/lifecycle.js#L139-L202
