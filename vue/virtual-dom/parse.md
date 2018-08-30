@@ -85,6 +85,7 @@ export function parse (
   platformMustUseProp = options.mustUseProp || no
   platformGetTagNamespace = options.getTagNamespace || no
 
+  // 找出options.mudules中每一项中属性含有key方法
   transforms = pluckModuleFunction(options.modules, 'transformNode')
   preTransforms = pluckModuleFunction(options.modules, 'preTransformNode')
   postTransforms = pluckModuleFunction(options.modules, 'postTransformNode')
@@ -281,6 +282,7 @@ export function parse (
           */
           ;(currentParent.scopedSlots || (currentParent.scopedSlots = {}))[name] = element
         } else {
+          // 将当前元素push到父元素
           currentParent.children.push(element)
           element.parent = currentParent
         }
