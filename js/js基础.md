@@ -324,3 +324,15 @@ defer属性规定是否对脚本执行进行延迟，直到页面加载为止。
 3. JSON 比 XML 不好理解数据格式
 
 4. JSON的速度要远远快于XML
+
+
+## js 中判断数据类型的方法
+```js
+typeof 只能判断基本类型(number, string, Boolean, Object ,null , Symol, function)
+
+instanceof 判断已知对象类型的方法，([] instanceof Array)
+
+constructor 根据对象的constructor对象类型判断
+
+Object.prototype.toString.call([]) 根据Object方法判断
+```
