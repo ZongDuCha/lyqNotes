@@ -28,7 +28,6 @@ function patch (oldVnode, vnode, hydrating, removeOnly) {
         patchVnode(oldVnode, vnode, insertedVnodeQueue, removeOnly)
       } else {
         // 当新旧节点不是同一个节点时
-        
         if (isRealElement) {
           // mounting to a real element
           // check if this is server-rendered content and if we can perform
