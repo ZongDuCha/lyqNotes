@@ -98,7 +98,7 @@ console.log(b) // js
 - 一般新增元素事件是没有添加进去的，这时就可以在父元素上用事件代理能很好解决这个问题
 
 
-## this的理解
+## this指向的理解
 
 this的指向在函数定义的时候是不确定的，只有在执行函数的时候才能确定this指向谁，实际上this的最终指向的是哪个调用他的对象内
 
@@ -208,6 +208,15 @@ console.log(a.name); //js
 - 在严格模式下，默认的this不是window，而是undefined。在node中，是Global对象
 
 - new 会改变this的对象，就好像new使用了call或apply方法（但实际上可能并不是）
+
+- 当函数作为对象的方法被调用时，this就会指向该对象。
+
+- 作为普通函数，this指向window。
+
+- 构造器调用，this指向返回的这个对象。
+
+- 箭头函数  箭头函数的this绑定看的是this所在函数定义在哪个对象下，就绑定哪个对象。如果有嵌套的情况，则this绑定到最近的一层对象上
+
 
 
 参考文献：https://www.cnblogs.com/pssp/p/5216085.html
@@ -357,3 +366,37 @@ cancelBubble = true    stopPropagation() //停止冒泡
 returnValue = false    preventDefault() //阻止元素默认事件
 srcEelement            target //事件目标
 ```
+
+#### javascript 中的new做了什么？
+1. 创建一个新对象
+2. 将构造函数的作用域赋给新对象（this就指向这个新的对象）
+3. 将构造函数的属性和方法添加到新对象中, 并且设置__proto__为构造函数的prototype （新对象就继承了构造函数的所有属性）
+4. 返回新对象
+
+```js
+function New(f) {
+    return function () {
+        var o = {"__proto__": f.prototype};
+        f.apply(o, arguments);//继承父类的属性
+        return o;
+    }
+}
+```
+
+#### 箭头函数this的原理：
+
+this指向的固定化，并不是因为箭头函数内部有绑定this的机制，实际原因是箭头函数根本没有自己的this，导致内部的this就是外层代码块的this。正是因为它没有this，所以也就不能用作构造函数。
+
+箭头函数不会绑定那些局部变量，所有涉及它们的引用，都会沿袭向上查找外层作用域链的方案来处理。
+
+```js
+function foo() {
+   setTimeout( () => {
+      console.log("args:", arguments);
+   },100);
+}
+
+foo( 2, 4, 6, 8 );
+// args: [2, 4, 6, 8]
+```
+这段代码中，=>箭头函数并没有绑定 arguments，所以它会以 foo() 的 arguments 来取而代之，而 super 和 new.target 也是一样的情况。
