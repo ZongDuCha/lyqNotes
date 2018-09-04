@@ -43,3 +43,10 @@ Event.eventPhase的返回值有四种可能。
 3. 事件处于冒泡阶段，即处于从目标节点向祖先节点的反向传播过程中。
 
 http://javascript.ruanyifeng.com/dom/event.html#toc13
+
+### 以下事件不支持冒泡事件：
+```js
+鼠标事件：mouserleave  mouseenter
+焦点事件：blur focus
+UI事件：scroll resize
+```

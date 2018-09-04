@@ -121,34 +121,6 @@ inline-block水平呈现的元素间，换行显示或空格分隔的情况下�
 
 而且，当元素设置了position：absolute或fixed，，或float不为none的时候，隐式的会将元素的display转为inline-block,即使指定了display除none之外的其它值的时候也是如此，而且也会将z-index增大为1.
 
-
-### link 和 @import 的区别
-
-1. 诞生的关系不同
-
-`link` 是xhtml提供的标签，不仅可以加载css文件，还可以定义RSS,rel连接属性等等。 `@import` css提供的语法规则，只能导入样式表的作用，
-
-
-2. 加载顺序不同
-
-加载页面时，`link`标签引入的css文件被同时加载. `@import`引入的css将在页面加载完成后执行加载。
-
-
-3. 兼容性区别
-
-`@import`是css2.1才有的语法，只能在ie5以上才能识别；`link`标签作为xhtml的元素，不存在兼容问题
-
-
-4. 可操作Dom区别
-
-可以通过js 动态操作dom ， 插入`link` 标签来改变样式；由于dom方法是基于文档的，无法使用js操控`@import`的方式插入样式
-
-
-5. 权重区别
-
- 引入的样式权重大于`@import`引入的样式
-
-
 CSS 权重优先级顺序简单表示为：
 
 `!important` > `行内样式` > `ID` > `类、伪类、属性` > `标签名` > `继承` > `通配符`

@@ -1,4 +1,4 @@
-### patch  
+### patch  （新旧虚拟dom对比， diff算法关键源码）
 
 ```js
 // 对比新旧vnode更新真实dom

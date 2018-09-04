@@ -1,4 +1,4 @@
-### html-parse
+### html-parse （解析html模版）
   - src/compiler/parser/html-parser
 
   - 循环解析 `template`，用正则匹配相应元素（开始和结束标签，注释节点，文档类型...）,不同的情况不同处理

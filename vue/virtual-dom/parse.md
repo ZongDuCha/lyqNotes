@@ -1,3 +1,4 @@
+### parse （生成 AST结构且解析html模版）
 ```js
 /* @flow */
 
