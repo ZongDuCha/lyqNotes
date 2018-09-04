@@ -336,3 +336,24 @@ constructor 根据对象的constructor对象类型判断
 
 Object.prototype.toString.call([]) 根据Object方法判断
 ```
+
+#### IE和标准DOM事件模型之间存在的差别
+1. 这里的IE是IE11以下;
+2. 参数的差别: attachEvent()的第一个参数比addEventListener()的事件名多一个"on"，
+且没有第三个参数，因为IE事件模型只支持冒泡事件流;
+3. 事件处理函数作用域的区别: IE中事件处理程序处于全局作用域，其内的this会指向window;
+4. 而用DOM（0或2）级事件的事件处理程序的作用域是元素作用域，其内的this指向其所属的元素
+```js
+例: document.addEventListener("click", function(){ 
+    if(this == document){
+        alert("此时this指向document");
+    }
+}, false);
+```
+5. 事件对象event的属性方法的差别
+```js
+        IE                    DOM
+cancelBubble = true    stopPropagation() //停止冒泡
+returnValue = false    preventDefault() //阻止元素默认事件
+srcEelement            target //事件目标
+```
