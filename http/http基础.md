@@ -49,7 +49,7 @@ HTTP/1.1之后增加的方法
 
 `connect` http1.1协议方法，建立一个到由目标资源标识的服务器的隧道,通常用于SSL加密服务器的链接与非加密的HTTP代理服务器的通信。
 
-`options` 向服务器请求某一资源支持的所有http请求方法，JavaScript的XMLHttpRequest对象进行CORS跨域资源共享时，就是使用OPTIONS方法发送嗅探请求，以判断是否有对指定资源的访问权限。
+`options` 向服务器请求某一资源支持的所有http请求方法，JavaScript的XMLHttpRequest对象进行CORS跨域资源共享时，就是使用OPTIONS方法发送请求，以判断是否有对指定资源的访问权限。
 
 `trace` 请求某一资源后服务器回显收到的请求数据（译注：TRACE方法让客户端测试到服务器的网络通路，回路的意思如发送一个请返回一个响应，这就是一个请求响应回路），如果请求是有效的，响应应该在响应实体主体里包含整个请求消息，并且响应应该包含一个Content-Type头域值为”message/http”的头域。TRACE方法的响应不能不缓存。
 
@@ -77,6 +77,13 @@ PATCH方法和put方法的区别:
 
 如：POST 方法不是幂等的，若反复执行多次对应的每一次都会创建一个新资源。如果请求超时，则需要回答这一问题：资源是否已经在服务端创建了？能否再重试一次或检查资源列表？而对于幂等方法不存在这一个问题，我们可以放心地多次请求
 
+#### 何时触发options请求？：
+规范要求，对那些可能对服务器数据产生副作用的 HTTP 请求方法,浏览器首先使用 OPTIONS 方法发起一个预检请求（preflight request），从而获知服务端是否允许该跨域请求。服务器确认允许之后，才发起实际的 HTTP 请求。
+
+### 三次握手过程和四次挥手过程
+![](https://camo.githubusercontent.com/36cf7d4e1598683fe72a5e1c3e837b16840f4085/687474703a2f2f6f6f327239726e7a702e626b742e636c6f7564646e2e636f6d2f6a656c6c797468696e6b544350342e6a7067)
+
+https://github.com/jawil/blog/issues/14
 
 https://sofish.github.io/restcookbook/http%20methods/idempotency/
 https://www.cnblogs.com/machao/p/5788425.html
