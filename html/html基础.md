@@ -31,6 +31,7 @@
 跨窗口通信 PostMessage
 Form Data 对象
 绘画 canvas
+服务器发送事件 ( SSE, server-sent event ) （只要让服务器保持 HTTP 会话不关闭，当有新的更新时，立刻输出）
 
 #### H5移除的元素：
 纯表现的元素：basefont、big、center、font、s、strike、tt、u

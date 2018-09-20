@@ -113,7 +113,7 @@ inline-block水平呈现的元素间，换行显示或空格分隔的情况下�
 
 否则，当position为absolute或fixed的时候，元素就是绝对定位，此时float的值为none。
 
-否则，当float不是none的时候，此时元素是浮动元素。
+否则，看float不是none的时候，此时元素是浮动元素。
 
 否则，如果元素是根元素，，其它情况下display的值为指定值。
 
@@ -134,7 +134,7 @@ CSS 权重优先级顺序简单表示为：
 
 ### 盒子模型
 ie盒子模型： width = content + padding + border
-w3c盒子模型： width = content
+w3c盒子模型： width = content + border
 
 box-sizing: content-box 是W3C盒子模型 
 box-sizing: border-box 是IE盒子模型
