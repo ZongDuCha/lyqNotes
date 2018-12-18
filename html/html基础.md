@@ -35,3 +35,11 @@ Form Data 对象
 #### H5移除的元素：
 纯表现的元素：basefont、big、center、font、s、strike、tt、u
 对可用性产生负面影响的元素：frame、frameset、noframes
+
+#### DOM文档加载顺序：
+解析HTML结构
+加载外部脚本和样式表文件(loading)
+解析并执行脚本
+DOM树构建完成（readyState：interactive）
+加载外部资源文件（图片等）
+页面加载完成（readyState：complete）

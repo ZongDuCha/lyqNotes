@@ -129,6 +129,7 @@ export function parse (
   /*解析HTML*/
   parseHTML(template, {
     warn,
+    // 结束标签
     expectHTML: options.expectHTML,
     isUnaryTag: options.isUnaryTag,
     canBeLeftOpenTag: options.canBeLeftOpenTag,
