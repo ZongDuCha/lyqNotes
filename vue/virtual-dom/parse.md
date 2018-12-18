@@ -3,6 +3,7 @@
 /* @flow */
 
 import he from 'he'
+// https://github.com/vuejs/vue/tree/dev/src/compiler/parser
 import { parseHTML } from './html-parser'
 import { parseText } from './text-parser'
 import { parseFilters } from './filter-parser'
@@ -10,6 +11,7 @@ import { genAssignmentCode } from '../directives/model'
 import { extend, cached, no, camelize } from 'shared/util'
 import { isIE, isEdge, isServerRendering } from 'core/util/env'
 
+// https://github.com/vuejs/vue/blob/dev/src/compiler/helpers.js
 import {
   addProp,
   addAttr,
@@ -132,7 +134,9 @@ export function parse (
     // 结束标签
     expectHTML: options.expectHTML,
     isUnaryTag: options.isUnaryTag,
+    // 开始标签
     canBeLeftOpenTag: options.canBeLeftOpenTag,
+    // 
     shouldDecodeNewlines: options.shouldDecodeNewlines,
     shouldDecodeNewlinesForHref: options.shouldDecodeNewlinesForHref,
     shouldKeepComment: options.comments,
@@ -158,6 +162,7 @@ export function parse (
     start (tag, attrs, unary) {
       // check namespace.
       // inherit parent ns if there is one
+      // 检查命名空间是否是svg或者math
       const ns = (currentParent && currentParent.ns) || platformGetTagNamespace(tag)
 
       // handle IE svg bug
@@ -166,13 +171,13 @@ export function parse (
       if (isIE && ns === 'svg') {
         attrs = guardIESVGBug(attrs)
       }
-
+      // 创建AST元素对象
       let element: ASTElement = createASTElement(tag, attrs, currentParent)
       if (ns) {
         element.ns = ns
       }
 
-      /*如果是被禁止的标签或者 是不是服务端渲染的情况*/
+      // 如果是被禁止的标签或者 是不是服务端渲染的情况
       if (isForbiddenTag(element) && !isServerRendering()) {
         element.forbidden = true
         process.env.NODE_ENV !== 'production' && warn(
@@ -184,6 +189,7 @@ export function parse (
 
       // apply pre-transforms
       for (let i = 0; i < preTransforms.length; i++) {
+        // 若html里面有v-model等指令，通过preTransforms进行转换
         element = preTransforms[i](element, options) || element
       }
 
@@ -206,14 +212,15 @@ export function parse (
       if (inVPre) {
         processRawAttrs(element)
       } else if (!element.processed) {
-        /*匹配v-for属性*/
+        /*匹配并处理v-for属性*/
         processFor(element)
-        /*匹配if属性，分别处理v-if、v-else以及v-else-if属性*/
+        /*匹配并处理if属性，分别处理v-if、v-else以及v-else-if属性*/
         processIf(element)
         /* v-once 不可改变的数据  <p v-once>不可以改变：{{ msg }}</p> */
-        /*处理v-once属性，https://cn.vuejs.org/v2/api/#v-once*/
+        /*处理并处理v-once属性，https://cn.vuejs.org/v2/api/#v-once*/
         processOnce(element)
         // element-scope stuff
+        // 对当前的树节点元素进行处理
         processElement(element, options)
       }
 
@@ -250,7 +257,7 @@ export function parse (
             <div v-if="fff">aaa</div>
             <div v-else>bbb</div>
           </template>
-          是完全允许的
+          是允许的
         */
         if (root.if && (element.elseif || element.else)) {
           /*监测根级元素的约束*/
@@ -402,7 +409,7 @@ export function processElement (element: ASTElement, options: CompilerOptions) {
 
     // determine whether this is a plain element after
     // removing structural attributes
-    /*去掉属性后，确定这是一个普通元素。*/
+    // 去掉属性后，检测是否是空属性节点
     element.plain = !element.key && !attrs.length
 
     /*处理ref属性 https://cn.vuejs.org/v2/api/#ref*/
@@ -413,7 +420,7 @@ export function processElement (element: ASTElement, options: CompilerOptions) {
     processComponent(element)
     /*转换*/
     for (let i = 0; i < transforms.length; i++) {
-        transforms[i](element, options)
+      transforms[i](element, options)
     }
     /*处理属性*/
     processAttrs(element)

@@ -1,4 +1,4 @@
-阅读顺序: [vdom](./vdom.md) -- [parse](./parse.md) -- [patch](./patch.md) -- [html-parse](./html-parse.md)
+# 阅读顺序: [vdom](./vdom.md) -- [parse](./parse.md) -- [patch](./patch.md) -- [html-parse](./html-parse.md)
 
 ### Virtual Dom 是什么
  是利用js双缓存dom节点经过diff算法比较，只更新需要更新的dom，实现高效的更新页面，Vue和Ember早就开始用虚拟DOM提高页面更新的速度，随后在Vue.js 2.0中也添加了这一技术
