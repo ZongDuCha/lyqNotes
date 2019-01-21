@@ -23,24 +23,27 @@ import {
   pluckModuleFunction
 } from '../helpers'
 
-/*匹配@以及v-on，绑定事件 */
+// 匹配@以及v-on，绑定事件 
 export const onRE = /^@|^v-on:/
-/*匹配v-、@以及:*/
+// 匹配v-、@以及:
 export const dirRE = /^v-|^@|^:/
-/*匹配v-for中的in以及of*/
-/*比如 for(var items in item) , for(var items of item)*/
+// 匹配v-for中的in以及of
+// 比如 for(var items in item) , for(var items of item)
 export const forAliasRE = /([^]*?)\s+(?:in|of)\s+([^]*)/
-/*v-for参数中带括号的情况匹配*/
-/*比如 v-for( (items, index) in item)这样的参数*/
+// v-for参数中带括号的情况匹配
+// 比如 v-for( (items, index) in item)这样的参数
 export const forIteratorRE = /,([^,\}\]]*)(?:,([^,\}\]]*))?$/
+// 去掉两边括号，比如 (value, key) => value, key
 const stripParensRE = /^\(|\)$/g
-
+// 捕获指令参数
 const argRE = /:(.*)$/
-/*匹配v-bind以及:*/
+// 匹配v-bind以及:
 const bindRE = /^:|^v-bind:/
-/*根据点来分开各个级别的正则，比如a.b.c.d解析后可以得到.b .c .d*/
+// 根据点来分开各个级别的正则，比如.stop.native.trim解析后可以得到.stop .native .trim
 const modifierRE = /\.[^.]+/g
 
+// he 为第三方的库，he.decode 函数用于 HTML 字符实体的解码工作 https://github.com/mathiasbynens/he
+// he.decode('foo &copy; bar &ne; baz &#x1D306; qux') → 'foo © bar ≠ baz 𝌆 qux'
 const decodeHTMLCached = cached(he.decode)
 
 // configurable state
