@@ -1,15 +1,58 @@
 #### 防抖和节流
 - 短时间内多次触发同一个事件，只执行最后一次，或者在开始时执行，中间不执行。比如公交车上车，要等待最后一个乘客上车
-- 节流是连续触发事件的过程中以一定时间间隔执行函数。节流会稀释你的执行频率，比如每间隔1秒钟，只会执行一次函数，无论这1秒钟内触发了多少次事件
+- 节流是连续触发事件的过程中以一定时间间隔执行函数。节流会稀释你的执行频率，比如每间隔1秒钟，只会执行一次函数，无论这1秒钟内触发了多少次事件，都为解决高频事件而来
 
-都为解决高频事件而来， scroll mousewhell mousemover touchmove onresize，后面有相应的代码实现函数的节流和防抖。
+```js
+/**
+    fn 执行的函数
+    wait 延时的时间
+    immediate 是否立即执行？
+*/
+function debounce = (fn, wait, immediate) => {
+    let timeout = null
+    return function () {
+        const [_this, arg] = [this, arguments]
+        timeout && clearTimeout(timeout)
+        if (!immediate) {
+            timeout = setTimeout(() => {
+                fn.apply(_this, arg)
+            }, wait);
+        }
+    }
+}
 
-#### 1.JS具有自动垃圾收集的机制
+function throttled = (fn, wait) => {
+    let startTime = Date.now()
+    let timeout = null
+    return function () {
+        const [ curTime, _this, arg] = [ Date.now(), this, arguments ]
+
+        let diffTime = wait - (curTime - startTime)
+        clearTimeout(timeout)
+        if (diffTime <= 0) {
+            fn.apply(_this, arg)
+            startTime = Date.now()
+        } else {
+            tineout = setTimeout(_ => {
+                fn.apply(_this, arg)
+                tineout = null
+            }, diffTime)
+        }
+        
+    }
+}
+
+// 记录开始时间和当前执行时间，并计算出时间差，如果时间小于等于0说明可以立即执行，否则延时执行函数
+```
+
+
+#### JS具有自动垃圾收集的机制
 - JS的垃圾收集器每隔固定的时间就执行一次释放操作，通用的是通过标记清除的算法
-- 在局部作用域中，垃圾回收器很容易做出判断并回收，全局比较难，因此应避免全局变量
+- 在局部作用域中，垃圾回收器很容易做出判断并回收，全局比较难，所以应避免全局变量
 - 现在各大浏览器通常用采用的垃圾回收有两种方法：标记清除、引用计数。
 
-09  0### Fcuntion.prototype.bind的实现
+
+### Fcuntion.prototype.bind的实现
 
 ```js
 
