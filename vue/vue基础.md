@@ -57,3 +57,11 @@ props: {
     }
 }
 ```
+
+### vue 依赖收集原理
+- 在vue中有一个叫`dep`专门来存放订阅者列表的类，他可以添加或删除订阅者，也可以向订阅者发送消息
+
+- 还有一个watcher 订阅者类，它在初始化时可以接受getter, callback两个函数作为参数。getter用来计算Watcher对象的值。当Watcher被触发时，会重新通过getter计算当前Watcher的值，如果值改变，则会执行callback.
+
+https://www.jianshu.com/p/e6e1fa824849
+https://www.cnblogs.com/ajianbeyourself/p/8962813.html
