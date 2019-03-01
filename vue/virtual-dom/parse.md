@@ -155,10 +155,9 @@ export function parse (
 
     // 判断root根元素是否有，默认是无，然后用checkRootConstraints 函数判断模板根元素是否符合要求，即模板必须有跟元素并且只能有一个根元素， 第二根元素不能为slot和template元素，并且v-for不能应用在根元素上，否则就判断stack栈的数组为空，即整个html都解析完后， 首先判断根元素是否存在v-if属性，并且当前元素存在elseif或者else，这样保证了被渲染的根元素就只能有一个，然后调用addIfCondition将条件渲染的元素存入 ifCondition
 
-    // 如果当前元素有父元素 并且 当前元素不是被禁止的标签名（style，script）, 然后判断1 当前元素是否有v-else-if或者else属性，则调用processIfConditions函数相邻查找v-if属性 元素节点。 判断2 如果没有v-else-if或者else属性，就会判断元素是否有用了slot-scope，则将元素保存在父节点的scopedSlots中，
+    // 如果当前元素有父元素 并且 当前元素不是被禁止的标签名（style，script）, 然后判断当前元素是否有v-else-if或者else属性，则调用processIfConditions函数相邻查找v-if属性 元素节点。 判断2 如果没有v-else-if或者else属性，就会判断元素是否有用了slot-scope，则将元素保存在父节点的scopedSlots中，
 
     // 如果没有条件渲染和slot-scope特性的元素，会正常处理父子级关系，即当前元素存入父元素的children中，当前元素的父元素指向当前元素
-    
     // !unary 检测是不是一元的标签，如果是就将元素存入stack中，否则直接 调用closeElement 闭合标签
 
     // start 开始标签时执行
@@ -180,7 +179,7 @@ export function parse (
         element.ns = ns
       }
 
-      // 如果是被禁止的标签或者 是不是服务端渲染的情况
+      // 如果是被禁止的标签或者 在服务端渲染的情况
       if (isForbiddenTag(element) && !isServerRendering()) {
         element.forbidden = true
         process.env.NODE_ENV !== 'production' && warn(
@@ -283,7 +282,7 @@ export function parse (
       /*forbidden标志是否是被禁止的标签（style标签或者script标签）*/
       if (currentParent && !element.forbidden) {
         if (element.elseif || element.else) {
-          /*当遇到当前ele有v-else或者v-elseif属性的时候，需要处理if属性，在其上级兄弟元素中必然存在一个v-if属性*/
+          /*当遇到当前ele有v-else或者v-elseif属性的时候，需要if属性元素，在其上级兄弟元素中必然存在一个v-if属性*/
           processIfConditions(element, currentParent)
         } else if (element.slotScope) { // scoped slot
           currentParent.plain = false

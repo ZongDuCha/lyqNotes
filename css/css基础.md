@@ -111,8 +111,6 @@ inline-block水平呈现的元素间，换行显示或空格分隔的情况下�
 
 总结来说，绝对定位，浮动，根元素都需要调整display
 
-而且，当元素设置了position：absolute或fixed，，或float不为none的时候，隐式的会将元素的display转为inline-block,即使指定了display除none之外的其它值的时候也是如此，而且也会将z-index增大为1.
-
 ### CSS 权重优先级顺序简单表示为：
 
 `!important` > `行内样式` > `ID` > `类、伪类、属性` > `标签名` > `继承` > `通配符`
@@ -138,19 +136,20 @@ Animation和transition大部分属性是相同的，他们都是随时间改变�
 而animation不需要触发任何事件的情况下才会随时间改变属性值，并且transition为2帧，从from .... to，而animation可以一帧一帧的。
 
 ### 超链接访问过后hover样式就不出现了
-被点击访问过的超链接样式不再具有hover和active了。解决方法是改变CSS属性的排列顺序:L-V-H-A ( love hate ): a:link {} a:visited {} a:hover {} a:active {}
+被点击访问过的超链接样式不再具有hover和active了。
+解决方法是改变CSS属性的排列顺序:L-V-H-A ( love hate ): a:link {} a:visited {} a:hover {} a:active {}
 
 ### css3新特性
-  选择器
-  边框(border-image、border-radius、box-shadow)
-  背景(background-clip、background-origin、background-size)
-  渐变(linear-gradients、radial-gradents)
-  字体(@font-face)
-  转换、形变(transform)
-  过度(transition)
-  动画(animation)
-  弹性盒模型(flex-box)
-  媒体查询(@media)
+选择器
+边框(border-image、border-radius、box-shadow)
+背景(background-clip、background-origin、background-size)
+渐变(linear-gradients、radial-gradents)
+字体(@font-face)
+转换、形变(transform)
+过度(transition)
+动画(animation)
+弹性盒模型(flex-box)
+媒体查询(@media)
 
 ### 清除div浮动方式 (scss)
 定义zoom:1来解决IE浮动问题

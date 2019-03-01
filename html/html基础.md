@@ -28,7 +28,7 @@
 历史管理 history
 跨域资源共享(CORS) Access-Control-Allow-Origin
 页面可见性改变事件 visibilitychange
-跨窗口通信 PostMessage
+跨窗口通信 PostMessage 可以安全地实现跨源通信
 Form Data 对象
 绘画 canvas
 服务器发送事件 ( SSE, server-sent event ) （只要让服务器保持 HTTP 会话不关闭，当有新的更新时，立刻输出）
@@ -41,9 +41,9 @@ Form Data 对象
 解析HTML结构
 加载外部脚本和样式表文件(loading)
 解析并执行脚本
-DOM树构建完成（readyState：interactive）
+DOM树构建完成（readyState：interactive） （DOMcontentLoaded 事件执行）
 加载外部资源文件（图片等）
-页面加载完成（readyState：complete）
+页面加载完成（readyState：complete） （load 事件执行）
 
 ### doctype 作用
 doctype一般声明与html文档的第一行，用于告诉浏览器以什么样的文档标准解析文档，doctype不存在或者格式错误会以兼容模式呈现
@@ -102,7 +102,7 @@ cookie只能存储4kb的大小，并且数据保存在客户端，每次同源�
 
 localstorage数据同样保存在客户端，网络请求的时候不会携带数据，在使用的时候没有设置过期时间，但是可以通过存储时间进行封装来实现，如果不手动清除，就会一直保存，就会浏览器关闭后也还存在，持久化方案之一，一般存储可达5mb或者更大，localstorage在同源的窗口可以互相调用，都是共享的
 
-sessionStorage数据保存在服务器端，同源网站的任意网页内都可以访问，session一般在标签页变比或浏览器关闭后就清除，即使标签关闭或刷新网页数据依然可以访问,适合临时存储
+session数据保存在服务器端，同源网站的任意网页内都可以访问，session一般在标签页变比或浏览器关闭后就清除，即使标签关闭或刷新网页数据依然可以访问,适合临时存储
 
 区别：
 1. cookie和localstorage数据存放在客户端，session数据放在服务器上 
@@ -132,4 +132,4 @@ https://www.cnblogs.com/zr123/p/8086525.html
 - async加载的顺序不一定会按照执行的先后顺序执行，defer会按照顺序执行
 - 两者都是异步请求
 - defer 是立即下载延迟执行脚本，async下载后立即执行
-- defer适合对一些脚本有依赖，需要操作dom节点的脚本使用， async适合对无依赖，优先级低的脚本执行，例如：预加载
+- defer 适合对一些脚本有依赖，需要操作dom节点的脚本使用， async适合对无依赖，优先级低的脚本执行，例如：预加载
