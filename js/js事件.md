@@ -1,6 +1,6 @@
-### 函数中 return false 到底做了什么？
+### jq中 return false 到底做了什么？
 
-jq 每次调用return false时，其实做了三件事
+函数每次调用return false时，其实做了三件事
 ```js
 event.preventDfefault();
 
